@@ -127,7 +127,7 @@ class _Worker:
 
     @property
     def alive(self) -> bool:
-        return self.proc.is_alive()
+        return bool(self.proc.is_alive())
 
 
 class SandboxPool:

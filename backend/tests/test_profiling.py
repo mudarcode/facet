@@ -9,7 +9,10 @@ from tests.conftest import DEV, run_jobs, upload_ready
 
 
 def _csv(rows):
-    return ("num,cat,flag,day,txt\n" + "\n".join(",".join("" if v is None else str(v) for v in r) for r in rows)).encode()
+    return (
+        "num,cat,flag,day,txt\n"
+        + "\n".join(",".join("" if v is None else str(v) for v in r) for r in rows)
+    ).encode()
 
 
 def _data(n=2000, seed=7):
@@ -109,6 +112,11 @@ def test_profile_refresh(client):
     run_jobs()
     r = client.post(f"/api/v1/datasets/{ds['id']}/profile", headers=DEV)
     assert r.status_code == 202
-    assert client.get(f"/api/v1/datasets/{ds['id']}/profile", headers=DEV).json()["status"] == "pending"
+    assert (
+        client.get(f"/api/v1/datasets/{ds['id']}/profile", headers=DEV).json()["status"]
+        == "pending"
+    )
     run_jobs()
-    assert client.get(f"/api/v1/datasets/{ds['id']}/profile", headers=DEV).json()["status"] == "ready"
+    assert (
+        client.get(f"/api/v1/datasets/{ds['id']}/profile", headers=DEV).json()["status"] == "ready"
+    )

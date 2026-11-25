@@ -27,6 +27,7 @@ async def execute(
     saved_query_id: uuid.UUID | None = None,
     record_history: bool = True,
     max_rows: int | None = None,
+    page_size: int | None = None,
 ) -> dict[str, Any]:
     settings = get_settings()
     t0 = time.perf_counter()
@@ -42,7 +43,7 @@ async def execute(
             timeout_s=settings.query_timeout_s,
             max_rows=max_rows or settings.query_max_rows,
             offset=offset,
-            limit=min(limit, settings.query_page_size_max),
+            limit=page_size or min(limit, settings.query_page_size_max),
         )
         result = await pool.execute(req)
     except FacetError as e:

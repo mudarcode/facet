@@ -49,6 +49,9 @@ def update(db: Session, ws: uuid.UUID, qid: uuid.UUID, **fields: object) -> Save
 def delete(db: Session, ws: uuid.UUID, qid: uuid.UUID) -> None:
     db.delete(get(db, ws, qid))
     db.commit()
+    from app.services import dashboards  # charts on this query were removed by FK cascade
+
+    dashboards.prune_missing(db, ws)
 
 
 def history(

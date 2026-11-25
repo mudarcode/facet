@@ -12,7 +12,11 @@ def test_list_rename_and_sql_name(client):
     ds = upload_ready(client, b"a\n1\n", "orders.csv")
     lst = client.get("/api/v1/datasets", headers=DEV).json()
     assert lst["total"] == 1 and lst["items"][0]["id"] == ds["id"]
-    r = client.patch(f"/api/v1/datasets/{ds['id']}", json={"name": "Orders FY24", "sql_name": "orders_fy24"}, headers=DEV)
+    r = client.patch(
+        f"/api/v1/datasets/{ds['id']}",
+        json={"name": "Orders FY24", "sql_name": "orders_fy24"},
+        headers=DEV,
+    )
     assert r.status_code == 200
     assert r.json()["name"] == "Orders FY24"
     assert sql(client, "SELECT * FROM orders_fy24").status_code == 200
@@ -78,7 +82,9 @@ def test_other_user_cannot_see_or_touch_datasets(client):
 
 def test_unauthenticated_requests_are_rejected(client):
     assert client.get("/api/v1/datasets").status_code == 401
-    assert client.get("/api/v1/datasets", headers={"Authorization": "Bearer nope"}).status_code == 401
+    assert (
+        client.get("/api/v1/datasets", headers={"Authorization": "Bearer nope"}).status_code == 401
+    )
     body = client.get("/api/v1/datasets").json()
     assert body["error"]["code"] == "unauthorized"
 

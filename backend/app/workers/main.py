@@ -13,6 +13,7 @@ import socket
 import threading
 import time
 import traceback
+from typing import Any
 
 from app.core.config import get_settings
 from app.core.db import session_scope
@@ -59,7 +60,8 @@ class Worker:
             last: tuple[float, str] = (-1.0, "")
             last_sent = time.monotonic()
             while not done.wait(1.0):
-                cur = (float(state["progress"]), str(state["message"]))
+                progress: Any = state["progress"]
+                cur = (float(progress), str(state["message"]))
                 now = time.monotonic()
                 if cur != last or now - last_sent >= interval:
                     with session_scope() as db:

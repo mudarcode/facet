@@ -10,6 +10,7 @@ blocks filesystem, network and extension access even if a query slipped through.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any
 
 import sqlglot
 from sqlglot import exp
@@ -105,7 +106,7 @@ class ValidatedQuery:
     """Lower-cased dataset sql_names referenced by the query."""
 
 
-def function_name(node: exp.Expression) -> str:
+def function_name(node: Any) -> str:
     if isinstance(node, exp.Anonymous):
         return str(node.name).lower()
     if isinstance(node, exp.Func):

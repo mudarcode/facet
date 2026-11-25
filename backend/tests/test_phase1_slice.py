@@ -60,7 +60,7 @@ def test_pagination_preserves_order(client):
 
 
 def test_tsv_upload(client):
-    data = "a\tb\n1\tx\n2\ty\n".encode()
+    data = b"a\tb\n1\tx\n2\ty\n"
     ds = upload_ready(client, data, "t.tsv")
     assert ds["row_count"] == 2
     r = sql(client, f"SELECT sum(a) FROM {ds['sql_name']}").json()

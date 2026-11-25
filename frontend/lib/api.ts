@@ -2,7 +2,7 @@
  * Typed client for the Facet API. All requests go straight to the FastAPI server
  * (CORS-enabled) so large uploads stream without passing through Next.js.
  */
-import type { Dataset, IngestOptions, Job, Page, Preview, QueryResult, ColumnSchema, DatasetVersion, ProfileResponse, SavedQuery, QueryRun, Transformation, TransformPreview, TransformStep } from "./types";
+import type { Dataset, IngestOptions, Job, Page, Preview, QueryResult, ColumnSchema, DatasetVersion, ProfileResponse, SavedQuery, QueryRun, Transformation, TransformPreview, TransformStep, Chart, ChartData, ChartSource, ChartSpec, Condition, Dashboard, ExportRecord, ExportSource, LayoutItem } from "./types";
 
 export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
 const TOKEN = process.env.NEXT_PUBLIC_FACET_TOKEN ?? "facet-dev-token";
@@ -130,4 +130,30 @@ export const api = {
   materialize: (id: string, name?: string) =>
     request<{ dataset_id: string; job_id: string }>(`/transformations/${id}/materialize`, { method: "POST", json: name ? { name } : {} }),
   settings: () => request<Record<string, unknown>>(`/settings`),
+
+  sourceColumns: (source: ChartSource) =>
+    request<{ columns: ColumnSchema[] }>(`/charts/source-columns`, { method: "POST", json: source }),
+  chartPreview: (source: ChartSource, spec: ChartSpec, filters: Condition[] = []) =>
+    request<ChartData>(`/charts/data`, { method: "POST", json: { ...source, spec, filters } }),
+  charts: () => request<Chart[]>(`/charts`),
+  chart: (id: string) => request<Chart>(`/charts/${id}`),
+  createChart: (body: ChartSource & { name: string; spec: ChartSpec }) => request<Chart>(`/charts`, { method: "POST", json: body }),
+  updateChart: (id: string, body: { name?: string; spec?: ChartSpec }) => request<Chart>(`/charts/${id}`, { method: "PATCH", json: body }),
+  deleteChart: (id: string) => request<void>(`/charts/${id}`, { method: "DELETE" }),
+  chartData: (id: string, filters: Condition[] = []) =>
+    request<ChartData>(`/charts/${id}/data`, { method: "POST", json: { filters } }),
+
+  dashboards: () => request<Page<Dashboard>>(`/dashboards?limit=200`),
+  dashboard: (id: string) => request<Dashboard>(`/dashboards/${id}`),
+  createDashboard: (body: { name: string; description?: string; layout?: LayoutItem[] }) =>
+    request<Dashboard>(`/dashboards`, { method: "POST", json: body }),
+  updateDashboard: (id: string, body: Partial<Pick<Dashboard, "name" | "description" | "layout" | "filters">>) =>
+    request<Dashboard>(`/dashboards/${id}`, { method: "PATCH", json: body }),
+  deleteDashboard: (id: string) => request<void>(`/dashboards/${id}`, { method: "DELETE" }),
+
+  createExport: (source: ExportSource, format: "csv" | "parquet") =>
+    request<ExportRecord>(`/exports`, { method: "POST", json: { source, format } }),
+  getExport: (id: string) => request<ExportRecord>(`/exports/${id}`),
 };
+
+export const absoluteUrl = (path: string) => `${API_URL}${path}`;
