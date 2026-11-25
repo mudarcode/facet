@@ -105,7 +105,7 @@ class ValidatedQuery:
     """Lower-cased dataset sql_names referenced by the query."""
 
 
-def _function_name(node: exp.Expression) -> str:
+def function_name(node: exp.Expression) -> str:
     if isinstance(node, exp.Anonymous):
         return str(node.name).lower()
     if isinstance(node, exp.Func):
@@ -113,7 +113,7 @@ def _function_name(node: exp.Expression) -> str:
     return ""
 
 
-def _is_denied_function(name: str) -> bool:
+def is_denied_function(name: str) -> bool:
     return name in _DENIED_FUNCTIONS or name.startswith(_DENIED_PREFIXES)
 
 
@@ -166,7 +166,7 @@ def validate_query(sql: str, allowed_datasets: set[str] | frozenset[str]) -> Val
         target = table.this
         if not isinstance(target, exp.Identifier):
             # Table function, e.g. read_csv('/etc/passwd') or query_table('x').
-            fname = _function_name(target) if isinstance(target, exp.Expression) else ""
+            fname = function_name(target) if isinstance(target, exp.Expression) else ""
             if fname not in _ALLOWED_TABLE_FUNCTIONS:
                 raise QueryRejected(
                     f"Table function {fname or type(target).__name__}() is not allowed.",
@@ -188,8 +188,8 @@ def validate_query(sql: str, allowed_datasets: set[str] | frozenset[str]) -> Val
         referenced.add(name)
 
     for func in tree.find_all(exp.Func):
-        name = _function_name(func)
-        if name and _is_denied_function(name):
+        name = function_name(func)
+        if name and is_denied_function(name):
             raise QueryRejected(f"Function {name}() is not allowed.", details={"function": name})
 
     # Execute the SQL *as sqlglot understood it*, so there is no parser differential between

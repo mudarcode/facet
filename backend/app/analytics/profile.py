@@ -242,18 +242,34 @@ def _quality_flags(col: dict[str, Any], n: int) -> list[dict[str, str]]:
     if n and col["nulls"] == n:
         flags.append({"level": "warning", "code": "all_null", "message": "Every value is null."})
     elif col["null_pct"] >= 50:
-        flags.append({"level": "warning", "code": "mostly_null",
-                      "message": f"{col['null_pct']:.0f}% of values are null."})
+        flags.append(
+            {
+                "level": "warning",
+                "code": "mostly_null",
+                "message": f"{col['null_pct']:.0f}% of values are null.",
+            }
+        )
     elif col["nulls"]:
-        flags.append({"level": "info", "code": "has_nulls",
-                      "message": f"{col['nulls']:,} null values."})
+        flags.append(
+            {"level": "info", "code": "has_nulls", "message": f"{col['nulls']:,} null values."}
+        )
     if non_null and col["distinct"] == 1:
         flags.append({"level": "info", "code": "constant", "message": "Single distinct value."})
     if non_null > 100 and col["distinct"] >= non_null * 0.98 and col["kind"] in ("text", "numeric"):
-        flags.append({"level": "info", "code": "unique_like",
-                      "message": "Nearly every value is distinct (likely an identifier)."})
+        flags.append(
+            {
+                "level": "info",
+                "code": "unique_like",
+                "message": "Nearly every value is distinct (likely an identifier).",
+            }
+        )
     if col.get("numeric_like_pct", 0) >= 95:
-        flags.append({"level": "suggestion", "code": "numeric_text",
-                      "message": f"{col['numeric_like_pct']:.0f}% of values are numeric; "
-                                 "consider correcting the type."})
+        flags.append(
+            {
+                "level": "suggestion",
+                "code": "numeric_text",
+                "message": f"{col['numeric_like_pct']:.0f}% of values are numeric; "
+                "consider correcting the type.",
+            }
+        )
     return flags

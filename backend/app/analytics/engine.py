@@ -180,3 +180,50 @@ def run_explain(con: duckdb.DuckDBPyConnection, sql: str, *, timeout_s: float) -
     with deadline(con, timeout_s):
         rows = con.execute(f"EXPLAIN {sql}").fetchall()
     return "\n".join(str(r[1]) for r in rows)
+
+
+def copy_query_to_file(
+    con: duckdb.DuckDBPyConnection,
+    sql: str,
+    out_path: str,
+    fmt: str,
+    *,
+    max_rows: int,
+    timeout_s: float,
+    sanitize_csv: bool = True,
+) -> int:
+    """Stream the result of validated ``sql`` to ``out_path`` (csv|parquet). Returns row count.
+
+    For CSV, string cells starting with = + - @ (or tab/CR) are prefixed with a single
+    quote to neutralise spreadsheet formula injection (OWASP "CSV injection").
+    """
+    cols = describe_columns(con, f"SELECT * FROM ({sql}) AS facet_q LIMIT 0")
+    if fmt == "csv" and sanitize_csv:
+        parts = []
+        for c in cols:
+            q = quote_ident(c["name"])
+            if c["type"].upper().startswith("VARCHAR"):
+                parts.append(
+                    f"CASE WHEN regexp_matches({q}, '^[=+\\-@\\t\\r]') THEN '''' || {q} "
+                    f"ELSE {q} END AS {q}"
+                )
+            else:
+                parts.append(q)
+        select = f"SELECT {', '.join(parts)} FROM ({sql}) AS facet_q"
+    else:
+        select = f"SELECT * FROM ({sql}) AS facet_q"
+    select += f" LIMIT {int(max_rows)}"
+    options = "FORMAT csv, HEADER true" if fmt == "csv" else "FORMAT parquet, COMPRESSION zstd"
+    with deadline(con, timeout_s) as fired:
+        try:
+            written = con.execute(
+                f"COPY ({select}) TO {quote_literal(out_path)} ({options})"
+            ).fetchone()
+        except duckdb.InterruptException as e:
+            raise TimeoutError(f"Export exceeded the {timeout_s:g}s time limit") from e
+        except duckdb.Error:
+            if fired.is_set():
+                raise TimeoutError(f"Export exceeded the {timeout_s:g}s time limit") from None
+            raise
+    # COPY reports the number of rows it wrote.
+    return int(written[0]) if written else 0
