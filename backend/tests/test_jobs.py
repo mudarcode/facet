@@ -46,7 +46,11 @@ def test_expired_lease_is_reclaimed_after_worker_crash(client):
         job = jobs.claim(db, "crashed-worker")
         assert job is not None and job.attempts == 1
         # Simulate the worker dying: its lease lapses without completion.
-        db.execute(update(Job).where(Job.id == job.id).values(lease_expires_at=utcnow() - timedelta(seconds=1)))
+        db.execute(
+            update(Job)
+            .where(Job.id == job.id)
+            .values(lease_expires_at=utcnow() - timedelta(seconds=1))
+        )
         db.commit()
     assert Worker("rescuer").run_once()
     j = _job(created["job_id"])

@@ -19,7 +19,9 @@ def _ws_id(client):
     from app.models import ApiToken, Workspace
 
     with get_sessionmaker()() as db:
-        tok = db.scalar(select(ApiToken).where(ApiToken.token_hash == hash_token(get_settings().dev_token)))
+        tok = db.scalar(
+            select(ApiToken).where(ApiToken.token_hash == hash_token(get_settings().dev_token))
+        )
         return db.scalar(select(Workspace.id).where(Workspace.owner_id == tok.user_id))
 
 
@@ -37,7 +39,9 @@ def test_parquet_ingestion(client):
 def test_corrupted_parquet_is_rejected_up_front(client):
     data = bytearray((SAMPLES / "small.parquet").read_bytes())
     r = client.post(
-        "/api/v1/datasets", params={"filename": "x.parquet"}, content=b"not parquet at all",
+        "/api/v1/datasets",
+        params={"filename": "x.parquet"},
+        content=b"not parquet at all",
         headers={**DEV, "Content-Type": "application/octet-stream"},
     )
     assert r.status_code == 422
@@ -62,7 +66,9 @@ def test_corrupted_parquet_is_rejected_up_front(client):
 )
 def test_empty_and_invalid_csv(client, content, message):
     r = client.post(
-        "/api/v1/datasets", params={"filename": "e.csv"}, content=content,
+        "/api/v1/datasets",
+        params={"filename": "e.csv"},
+        content=content,
         headers={**DEV, "Content-Type": "application/octet-stream"},
     )
     if r.status_code == 202:
@@ -77,7 +83,9 @@ def test_empty_and_invalid_csv(client, content, message):
 
 def test_unsupported_extension(client):
     r = client.post(
-        "/api/v1/datasets", params={"filename": "x.xlsx"}, content=b"abc",
+        "/api/v1/datasets",
+        params={"filename": "x.xlsx"},
+        content=b"abc",
         headers={**DEV, "Content-Type": "application/octet-stream"},
     )
     assert r.status_code == 422
@@ -128,7 +136,9 @@ def test_explicit_options(client):
     data = b"1|a\n2|b\n3|c\n"
     import json
 
-    ds = upload_ready(client, data, "p.csv", options=json.dumps({"delimiter": "|", "header": False}))
+    ds = upload_ready(
+        client, data, "p.csv", options=json.dumps({"delimiter": "|", "header": False})
+    )
     assert ds["row_count"] == 3
     assert [c["name"] for c in ds["current_version"]["columns"]] == ["column0", "column1"]
 
@@ -151,7 +161,7 @@ def test_type_override_reprocess_creates_new_version(client):
     types = {c["name"]: c["type"] for c in v["columns"]}
     assert types == {"id": "BIGINT", "code": "BIGINT", "when": "DATE"}
     assert v["ingest_report"]["cast_failures"] == {"code": 1, "when": 1}
-    rows = sql(client, f"SELECT code, \"when\" FROM {ds['sql_name']} ORDER BY id").json()["rows"]
+    rows = sql(client, f'SELECT code, "when" FROM {ds["sql_name"]} ORDER BY id').json()["rows"]
     assert rows == [[7, "2024-01-05"], [42, "2024-02-10"], [None, None]]
     versions = client.get(f"/api/v1/datasets/{ds['id']}/versions", headers=DEV).json()
     assert [x["version"] for x in versions] == [2, 1]
@@ -160,7 +170,9 @@ def test_type_override_reprocess_creates_new_version(client):
 def test_upload_size_limit(client, monkeypatch):
     monkeypatch.setattr(get_settings(), "max_upload_bytes", 1000)
     r = client.post(
-        "/api/v1/datasets", params={"filename": "big.csv"}, content=b"a\n" + b"1\n" * 2000,
+        "/api/v1/datasets",
+        params={"filename": "big.csv"},
+        content=b"a\n" + b"1\n" * 2000,
         headers={**DEV, "Content-Type": "application/octet-stream"},
     )
     assert r.status_code == 413
@@ -179,7 +191,12 @@ def test_interrupted_upload_leaves_nothing_behind(client):
     async def go():
         with get_sessionmaker()() as db:
             await svc.create_from_upload(
-                db, ws, filename="x.csv", chunks=chunks(), name=None, options={},
+                db,
+                ws,
+                filename="x.csv",
+                chunks=chunks(),
+                name=None,
+                options={},
                 content_length=None,
             )
 
@@ -220,7 +237,9 @@ def test_large_file_streamed_through_api(client, tmp_path):
                 yield chunk
 
     r = client.post(
-        "/api/v1/datasets", params={"filename": "big.csv"}, content=gen(),
+        "/api/v1/datasets",
+        params={"filename": "big.csv"},
+        content=gen(),
         headers={**DEV, "Content-Type": "application/octet-stream"},
     )
     assert r.status_code == 202
@@ -233,7 +252,9 @@ def test_large_file_streamed_through_api(client, tmp_path):
 
 def test_invalid_options_json(client):
     r = client.post(
-        "/api/v1/datasets", params={"filename": "a.csv", "options": "{bad"}, content=b"a\n1\n",
+        "/api/v1/datasets",
+        params={"filename": "a.csv", "options": "{bad"},
+        content=b"a\n1\n",
         headers={**DEV, "Content-Type": "application/octet-stream"},
     )
     assert r.status_code == 422

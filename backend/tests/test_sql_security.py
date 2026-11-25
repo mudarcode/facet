@@ -161,7 +161,9 @@ def test_concurrency_limit_returns_busy():
         pool = SandboxPool(1, acquire_timeout_s=0.2)
         await pool.start()
         try:
-            slow = SandboxRequest(sql="SELECT count(*) FROM range(100000000000)", views={}, timeout_s=3)
+            slow = SandboxRequest(
+                sql="SELECT count(*) FROM range(100000000000)", views={}, timeout_s=3
+            )
             fast = SandboxRequest(sql="SELECT 1", views={}, timeout_s=3)
             task = asyncio.create_task(pool.execute(slow))
             await asyncio.sleep(0.3)

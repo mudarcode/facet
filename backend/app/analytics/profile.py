@@ -163,13 +163,15 @@ def _base_stats(
         if isinstance(value, float) and (math.isnan(value) or math.isinf(value)):
             value = None
         out[col][key] = to_json_value(value) if key in ("min", "max") else value
-    for col in out.values():
-        col["non_null"] = int(col.get("non_null") or 0)
-        col["distinct"] = int(col.get("distinct") or 0)
+    for stats in out.values():
+        stats["non_null"] = int(stats.get("non_null") or 0)
+        stats["distinct"] = int(stats.get("distinct") or 0)
     return out
 
 
-def _quantiles(con: duckdb.DuckDBPyConnection, src: str, name: str, *, approx: bool) -> dict:
+def _quantiles(
+    con: duckdb.DuckDBPyConnection, src: str, name: str, *, approx: bool
+) -> dict[str, Any]:
     q = quote_ident(name)
     fn = "approx_quantile" if approx else "quantile_cont"
     row = con.execute(

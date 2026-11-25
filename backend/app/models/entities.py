@@ -191,8 +191,10 @@ class Dashboard(IdMixin, TimestampMixin, Base):
     )
     name: Mapped[str] = mapped_column(String(200))
     description: Mapped[str] = mapped_column(Text, default="")
-    # [{id, chart_id, x, y, w, h}]
+    # [{i, chart_id, x, y, w, h}] — react-grid-layout coordinates
     layout: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list)
+    # Dashboard-wide filters [{column, op, value}], applied to every chart that has the column.
+    filters: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list, server_default="[]")
 
 
 class Export(IdMixin, TimestampMixin, Base):

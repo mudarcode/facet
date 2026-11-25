@@ -260,7 +260,9 @@ def list_datasets(
     return items, total
 
 
-def latest_jobs(db: Session, workspace_id: uuid.UUID, dataset_ids: list[uuid.UUID]) -> dict:
+def latest_jobs(
+    db: Session, workspace_id: uuid.UUID, dataset_ids: list[uuid.UUID]
+) -> dict[str, Job]:
     """Most recent ingest job per dataset, for status/progress display."""
     if not dataset_ids:
         return {}
@@ -318,8 +320,12 @@ def _purge(db: Session, ds: Dataset) -> None:
     except OSError:
         log.exception("storage cleanup failed for dataset %s; will retry", ds.id)
         return
+    ws = ds.workspace_id
     db.delete(ds)
     db.commit()
+    from app.services import dashboards  # local import: dashboards depends on charts
+
+    dashboards.prune_missing(db, ws)
 
 
 def sweep_deleting(db: Session) -> int:

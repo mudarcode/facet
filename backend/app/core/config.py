@@ -44,6 +44,9 @@ class Settings(BaseSettings):
 
     # Export limits
     export_max_rows: int = 5_000_000
+    export_link_ttl_s: int = 600
+    # Signs short-lived download links. Override in any shared deployment.
+    secret_key: str = "facet-dev-secret-change-me"  # noqa: S105 - local development only
 
     @property
     def objects_dir(self) -> Path:

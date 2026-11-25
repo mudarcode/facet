@@ -19,6 +19,7 @@ from app.core.db import session_scope
 from app.core.errors import FacetError
 from app.models import Dataset, DatasetVersion, Job
 from app.services import activity, jobs
+from app.services import charts as chart_svc
 from app.services import datasets as ds_svc
 from app.services import transformations as tx_svc
 from app.storage import get_storage, processed_key
@@ -255,6 +256,8 @@ def on_final_failure(job: Job, error: str) -> None:
     """Called once a job has permanently failed (no more retries)."""
     if job.kind in ("ingest", "materialize") and "version_id" in job.payload:
         _mark_failed(uuid.UUID(job.payload["version_id"]), error)
+    elif job.kind == "export" and "export_id" in job.payload:
+        _fail_export(uuid.UUID(job.payload["export_id"]), error)
 
 
 HANDLERS: dict[str, Callable[[Job, Progress], dict[str, Any]]] = {
@@ -262,3 +265,136 @@ HANDLERS: dict[str, Callable[[Job, Progress], dict[str, Any]]] = {
     "profile": handle_profile,
     "materialize": handle_materialize,
 }
+
+
+async def _export_sql(job: Job, source: dict[str, Any]) -> str:
+    """Resolve an export source to SQL. Chart exports reuse the chart compiler."""
+    from app.analytics.charts import ChartSpec, compile_chart
+    from app.analytics.engine import quote_ident as qi
+    from app.models import SavedQuery
+
+    with session_scope() as db:
+        kind = source["kind"]
+        if kind == "query":
+            return str(source["sql"])
+        if kind == "dataset":
+            ds = ds_svc.get(db, job.workspace_id, uuid.UUID(source["dataset_id"]))
+            return f"SELECT * FROM {qi(ds.sql_name)}"
+        chart = chart_svc.get(db, job.workspace_id, uuid.UUID(source["chart_id"]))
+        spec = ChartSpec.model_validate(chart.spec)
+        if chart.dataset_id:
+            ds = ds_svc.get(db, job.workspace_id, chart.dataset_id)
+            v = ds.current_version
+            schema = (
+                [{"name": c["name"], "type": c["type"]} for c in (v.schema_json or [])] if v else []
+            )
+            relation = qi(ds.sql_name)
+        else:
+            sq = db.scalar(
+                select(SavedQuery).where(
+                    SavedQuery.id == chart.saved_query_id,
+                    SavedQuery.workspace_id == job.workspace_id,
+                )
+            )
+            if sq is None:
+                raise PermanentJobError("Chart source no longer exists.")
+            allow = ds_svc.queryable_datasets(db, job.workspace_id)
+            relation = f"({validate_query(sq.sql, set(allow)).sql})"
+            schema = _describe_sql(job, f"SELECT * FROM {relation} AS q")
+        sql, _ = compile_chart(relation, spec, schema)
+        return sql
+
+
+def _describe_sql(job: Job, sql: str) -> list[dict[str, str]]:
+    with session_scope() as db:
+        allow = ds_svc.queryable_datasets(db, job.workspace_id)
+    v = validate_query(sql, set(allow))
+    con = open_sandbox({n: allow[n] for n in v.datasets}, SandboxLimits())
+    try:
+        return describe_columns(con, f"SELECT * FROM ({v.sql}) AS q LIMIT 0")
+    finally:
+        con.close()
+
+
+def handle_export(job: Job, progress: Progress) -> dict[str, Any]:
+    import asyncio
+
+    from app.models import Export
+
+    settings = get_settings()
+    storage = get_storage()
+    export_id = uuid.UUID(job.payload["export_id"])
+    with session_scope() as db:
+        exp = db.scalar(
+            select(Export).where(Export.id == export_id, Export.workspace_id == job.workspace_id)
+        )
+        if exp is None:
+            raise PermanentJobError("Export no longer exists.")
+        exp.status = "running"
+        source, fmt = dict(exp.source), exp.format
+    try:
+        sql = asyncio.run(_export_sql(job, source))
+        with session_scope() as db:
+            allow = ds_svc.queryable_datasets(db, job.workspace_id)
+        validated = validate_query(sql, set(allow))
+    except FacetError as e:
+        _fail_export(export_id, e.message)
+        raise PermanentJobError(e.message) from e
+    except PermanentJobError as e:
+        _fail_export(export_id, str(e))
+        raise
+
+    key = f"exports/{job.workspace_id}/{export_id}.{fmt}"
+    tmp_key = key + ".tmp"
+    tmp = storage.local_path(tmp_key)
+    tmp.parent.mkdir(parents=True, exist_ok=True)
+    progress(0.1, "Writing file")
+    con = open_sandbox(
+        {n: allow[n] for n in validated.datasets},
+        SandboxLimits(settings.query_memory_limit, settings.query_threads, 600),
+        writable_paths=(str(tmp),),
+    )
+    try:
+        rows = copy_query_to_file(
+            con,
+            validated.sql,
+            str(tmp),
+            fmt,
+            max_rows=settings.export_max_rows,
+            timeout_s=600,
+        )
+    except Exception as e:
+        storage.delete(tmp_key)
+        msg = f"Export failed: {str(e).splitlines()[0]}"
+        _fail_export(export_id, msg)
+        raise PermanentJobError(msg) from e
+    finally:
+        con.close()
+    storage.commit_tmp(tmp_key, key)
+    with session_scope() as db:
+        exp = db.get(Export, export_id)
+        if exp is None:
+            storage.delete(key)
+            raise PermanentJobError("Export was deleted.")
+        exp.status = "succeeded"
+        exp.storage_key = key
+        exp.row_count = rows
+        exp.bytes = storage.size(key)
+    return {
+        "export_id": str(export_id),
+        "row_count": rows,
+        "truncated": rows >= settings.export_max_rows,
+    }
+
+
+def _fail_export(export_id: uuid.UUID, error: str) -> None:
+    from app.models import Export
+
+    with session_scope() as db:
+        exp = db.get(Export, export_id)
+        if exp is not None:
+            exp.status = "failed"
+            exp.error = error
+
+
+HANDLERS["export"] = handle_export
