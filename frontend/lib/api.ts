@@ -2,7 +2,7 @@
  * Typed client for the Facet API. All requests go straight to the FastAPI server
  * (CORS-enabled) so large uploads stream without passing through Next.js.
  */
-import type { Dataset, IngestOptions, Job, Page, Preview, QueryResult, ColumnSchema, DatasetVersion, ProfileResponse } from "./types";
+import type { Dataset, IngestOptions, Job, Page, Preview, QueryResult, ColumnSchema, DatasetVersion, ProfileResponse, SavedQuery, QueryRun, Transformation, TransformPreview, TransformStep } from "./types";
 
 export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
 const TOKEN = process.env.NEXT_PUBLIC_FACET_TOKEN ?? "facet-dev-token";
@@ -113,5 +113,21 @@ export const api = {
   execute: (sql: string, offset = 0, limit = 100, extra: { saved_query_id?: string; record_history?: boolean } = {}) =>
     request<QueryResult>(`/queries/execute`, { method: "POST", json: { sql, offset, limit, ...extra } }),
   explain: (sql: string) => request<{ plan: string }>(`/queries/explain`, { method: "POST", json: { sql } }),
+  savedQueries: () => request<Page<SavedQuery>>(`/queries?limit=200`),
+  createSavedQuery: (body: { name: string; sql: string; description?: string }) => request<SavedQuery>(`/queries`, { method: "POST", json: body }),
+  updateSavedQuery: (id: string, body: Partial<{ name: string; sql: string; description: string }>) =>
+    request<SavedQuery>(`/queries/${id}`, { method: "PATCH", json: body }),
+  deleteSavedQuery: (id: string) => request<void>(`/queries/${id}`, { method: "DELETE" }),
+  history: (offset = 0) => request<Page<QueryRun>>(`/queries/history?limit=50&offset=${offset}`),
+  transformations: (datasetId?: string) => request<Transformation[]>(`/transformations${datasetId ? `?dataset_id=${datasetId}` : ""}`),
+  previewTransform: (datasetId: string, steps: TransformStep[], offset = 0, limit = 100) =>
+    request<TransformPreview>(`/transformations/preview`, { method: "POST", json: { dataset_id: datasetId, steps, offset, limit } }),
+  createTransformation: (body: { dataset_id: string; name: string; steps: TransformStep[] }) =>
+    request<Transformation>(`/transformations`, { method: "POST", json: body }),
+  updateTransformation: (id: string, body: { name?: string; steps?: TransformStep[] }) =>
+    request<Transformation>(`/transformations/${id}`, { method: "PATCH", json: body }),
+  deleteTransformation: (id: string) => request<void>(`/transformations/${id}`, { method: "DELETE" }),
+  materialize: (id: string, name?: string) =>
+    request<{ dataset_id: string; job_id: string }>(`/transformations/${id}/materialize`, { method: "POST", json: name ? { name } : {} }),
   settings: () => request<Record<string, unknown>>(`/settings`),
 };

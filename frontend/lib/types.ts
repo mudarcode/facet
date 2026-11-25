@@ -151,3 +151,56 @@ export interface ProfileResponse {
   error: string | null;
   profile: Profile | null;
 }
+
+export interface SavedQuery {
+  id: string;
+  name: string;
+  description: string;
+  sql: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface QueryRun {
+  id: string;
+  sql: string;
+  status: "succeeded" | "failed" | "rejected" | "timeout";
+  row_count: number | null;
+  engine_ms: number | null;
+  total_ms: number | null;
+  error: string | null;
+  saved_query_id: string | null;
+  created_at: string;
+}
+
+export type TransformStep =
+  | { op: "select"; columns: string[] }
+  | { op: "rename"; mapping: Record<string, string> }
+  | { op: "filter"; conditions: { column: string; op: string; value?: unknown }[]; combine?: "and" | "or" }
+  | { op: "drop_nulls"; columns: string[] }
+  | { op: "sort"; keys: { column: string; desc: boolean }[] }
+  | { op: "cast"; column: string; to: string }
+  | { op: "derive"; name: string; expression: string }
+  | { op: "group"; by: string[]; aggregations: { column: string | null; func: string; alias?: string }[] }
+  | { op: "distinct"; columns: string[] }
+  | { op: "limit"; count: number };
+
+export interface Transformation {
+  id: string;
+  dataset_id: string;
+  name: string;
+  steps: TransformStep[];
+  created_at: string;
+  updated_at: string;
+  sql: string | null;
+  output_dataset_id: string | null;
+}
+
+export interface TransformPreview {
+  sql: string;
+  columns: ResultColumn[];
+  rows: unknown[][];
+  total_rows: number;
+  truncated: boolean;
+  engine_ms: number;
+}

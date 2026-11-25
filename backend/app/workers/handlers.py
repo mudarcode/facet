@@ -3,18 +3,24 @@
 from __future__ import annotations
 
 import logging
+import time
 import uuid
 from collections.abc import Callable
 from typing import Any
 
 from sqlalchemy import select
 
-from app.analytics.ingest import IngestError, IngestOptions, ingest_file
+from app.analytics.engine import SandboxLimits, copy_query_to_file, describe_columns, open_sandbox
+from app.analytics.ingest import IngestError, IngestOptions, IngestResult, ingest_file
 from app.analytics.profile import profile_parquet
+from app.analytics.sql_guard import validate_query
 from app.core.config import get_settings
 from app.core.db import session_scope
+from app.core.errors import FacetError
 from app.models import Dataset, DatasetVersion, Job
 from app.services import activity, jobs
+from app.services import datasets as ds_svc
+from app.services import transformations as tx_svc
 from app.storage import get_storage, processed_key
 
 log = logging.getLogger(__name__)
@@ -71,10 +77,31 @@ def handle_ingest(job: Job, progress: Progress) -> dict[str, Any]:
         storage.delete(tmp_key)
         raise PermanentJobError(str(e)) from e
 
-    # Atomic registration: the Parquet file is moved into place first, then one DB
-    # transaction flips the version to ready and points the dataset at it. A crash
-    # between the two leaves an unreferenced file (cleaned with the dataset) but never
-    # a "ready" dataset pointing at a missing or partial file.
+    _register_version(job, dataset_id, version_id, tmp_key, final_key, result)
+    return {
+        "dataset_id": str(dataset_id),
+        "version_id": str(version_id),
+        "row_count": result.row_count,
+        "duration_s": result.duration_s,
+    }
+
+
+def _register_version(
+    job: Job,
+    dataset_id: uuid.UUID,
+    version_id: uuid.UUID,
+    tmp_key: str,
+    final_key: str,
+    result: IngestResult,
+) -> None:
+    """Atomic registration of a finished Parquet file as the dataset's current version.
+
+    The file is moved into place first, then one DB transaction flips the version to
+    ready and points the dataset at it. A crash between the two leaves an unreferenced
+    file (removed with the dataset) but never a "ready" dataset pointing at a missing
+    or partial file.
+    """
+    storage = get_storage()
     storage.commit_tmp(tmp_key, final_key)
     with session_scope() as db:
         version = db.get(DatasetVersion, version_id)
@@ -108,12 +135,71 @@ def handle_ingest(job: Job, progress: Progress) -> dict[str, Any]:
             "profile",
             {"dataset_id": str(dataset_id), "version_id": str(version_id)},
         )
-    return {
-        "dataset_id": str(dataset_id),
-        "version_id": str(version_id),
-        "row_count": result.row_count,
-        "duration_s": result.duration_s,
-    }
+
+
+def handle_materialize(job: Job, progress: Progress) -> dict[str, Any]:
+    """Run a saved transformation through the sandbox and store the result as Parquet."""
+    settings = get_settings()
+    storage = get_storage()
+    dataset_id = uuid.UUID(job.payload["dataset_id"])
+    version_id = uuid.UUID(job.payload["version_id"])
+    tid = uuid.UUID(job.payload["transformation_id"])
+    with session_scope() as db:
+        try:
+            t = tx_svc.get(db, job.workspace_id, tid)
+            src = ds_svc.get(db, job.workspace_id, t.dataset_id)
+            sql, _ = tx_svc.compile_for(src, t.steps)
+        except FacetError as e:
+            raise PermanentJobError(e.message) from e
+        allow = ds_svc.queryable_datasets(db, job.workspace_id)
+        version = db.get(DatasetVersion, version_id)
+        if version is None:
+            raise PermanentJobError("Dataset version no longer exists.")
+        version.status = "processing"
+    try:
+        validated = validate_query(sql, set(allow))
+    except FacetError as e:
+        raise PermanentJobError(e.message) from e
+
+    final_key = processed_key(job.workspace_id, dataset_id, version_id)
+    tmp_key = final_key + ".tmp"
+    tmp_path = storage.local_path(tmp_key)
+    tmp_path.parent.mkdir(parents=True, exist_ok=True)
+    progress(0.1, "Running transformation")
+    t0 = time.perf_counter()
+    con = open_sandbox(
+        {n: allow[n] for n in validated.datasets},
+        SandboxLimits(settings.ingest_memory_limit, settings.ingest_threads, 3600),
+        writable_paths=(str(tmp_path),),
+    )
+    try:
+        rows = copy_query_to_file(
+            con,
+            validated.sql,
+            str(tmp_path),
+            "parquet",
+            max_rows=2**62,
+            timeout_s=3600,
+            sanitize_csv=False,
+        )
+        schema = [
+            {"name": c["name"], "type": c["type"], "nullable": True}
+            for c in describe_columns(con, f"SELECT * FROM ({validated.sql}) AS q LIMIT 0")
+        ]
+    except Exception as e:
+        storage.delete(tmp_key)
+        raise PermanentJobError(f"Transformation failed: {str(e).splitlines()[0]}") from e
+    finally:
+        con.close()
+    result = IngestResult(
+        schema=schema,
+        row_count=rows,
+        column_count=len(schema),
+        report={"warnings": [], "sql": validated.sql, "transformation_id": str(tid)},
+        duration_s=time.perf_counter() - t0,
+    )
+    _register_version(job, dataset_id, version_id, tmp_key, final_key, result)
+    return {"dataset_id": str(dataset_id), "row_count": rows}
 
 
 def handle_profile(job: Job, progress: Progress) -> dict[str, Any]:
@@ -167,11 +253,12 @@ def _mark_failed(version_id: uuid.UUID, error: str) -> None:
 
 def on_final_failure(job: Job, error: str) -> None:
     """Called once a job has permanently failed (no more retries)."""
-    if job.kind == "ingest" and "version_id" in job.payload:
+    if job.kind in ("ingest", "materialize") and "version_id" in job.payload:
         _mark_failed(uuid.UUID(job.payload["version_id"]), error)
 
 
 HANDLERS: dict[str, Callable[[Job, Progress], dict[str, Any]]] = {
     "ingest": handle_ingest,
     "profile": handle_profile,
+    "materialize": handle_materialize,
 }
