@@ -2,7 +2,7 @@
  * Typed client for the Facet API. All requests go straight to the FastAPI server
  * (CORS-enabled) so large uploads stream without passing through Next.js.
  */
-import type { Dataset, IngestOptions, Job, Page, Preview, QueryResult, ColumnSchema, DatasetVersion } from "./types";
+import type { Dataset, IngestOptions, Job, Page, Preview, QueryResult, ColumnSchema, DatasetVersion, ProfileResponse } from "./types";
 
 export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
 const TOKEN = process.env.NEXT_PUBLIC_FACET_TOKEN ?? "facet-dev-token";
@@ -107,6 +107,8 @@ export const api = {
   reprocess: (id: string, options: IngestOptions) =>
     request<{ dataset: Dataset; job_id: string }>(`/datasets/${id}/reprocess`, { method: "POST", json: { options } }),
   preview: (id: string, offset = 0, limit = 100) => request<Preview>(`/datasets/${id}/preview?offset=${offset}&limit=${limit}`),
+  profile: (id: string) => request<ProfileResponse>(`/datasets/${id}/profile`),
+  refreshProfile: (id: string) => request<ProfileResponse>(`/datasets/${id}/profile`, { method: "POST" }),
   job: (id: string) => request<Job>(`/jobs/${id}`),
   execute: (sql: string, offset = 0, limit = 100, extra: { saved_query_id?: string; record_history?: boolean } = {}) =>
     request<QueryResult>(`/queries/execute`, { method: "POST", json: { sql, offset, limit, ...extra } }),

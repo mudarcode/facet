@@ -109,3 +109,45 @@ export interface Preview {
   offset: number;
   limit: number;
 }
+
+export interface ProfileColumn {
+  name: string;
+  type: string;
+  kind: "numeric" | "temporal" | "text" | "boolean" | "other";
+  count: number;
+  nulls: number;
+  null_pct: number;
+  distinct: number;
+  distinct_method: string;
+  min?: unknown;
+  max?: unknown;
+  mean?: number | null;
+  stddev?: number | null;
+  min_length?: number | null;
+  max_length?: number | null;
+  avg_length?: number | null;
+  quantiles?: { p05: number | null; p25: number | null; p50: number | null; p75: number | null; p95: number | null; method: string };
+  histogram?: { start: number | string; end?: number; unit?: string; count: number }[];
+  top_values?: { value: unknown; count: number }[];
+  numeric_like_pct?: number;
+  quality: { level: "info" | "warning" | "suggestion"; code: string; message: string }[];
+}
+
+export interface Profile {
+  row_count: number;
+  column_count: number;
+  sampled: boolean;
+  sample_rows: number | null;
+  sample_method: string | null;
+  detail_columns: number;
+  columns: ProfileColumn[];
+  duration_s: number;
+}
+
+export interface ProfileResponse {
+  status: "ready" | "pending" | "failed";
+  version_id: string;
+  job_id: string | null;
+  error: string | null;
+  profile: Profile | null;
+}

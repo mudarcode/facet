@@ -29,14 +29,16 @@
   --ring: rgb(79 91 213 / 0.35);
   --shadow-sm: 0 1px 2px rgb(16 24 40 / 0.05);
   --shadow-md: 0 4px 16px -4px rgb(16 24 40 / 0.1), 0 2px 4px -2px rgb(16 24 40 / 0.05);
-  --chart-1: #4f5bd5;
-  --chart-2: #1f9d8b;
-  --chart-3: #e08a2e;
-  --chart-4: #c2477a;
-  --chart-5: #7a8b2f;
-  --chart-6: #5e8fd6;
-  --chart-7: #9a5fc9;
-  --chart-8: #c9a227;
+  /* Categorical series palette, validated with the dataviz CVD checker
+     (adjacent pairs; scatter-style charts cap at 3 series). Fixed order. */
+  --chart-1: #257de0;
+  --chart-2: #f47230;
+  --chart-3: #00b894;
+  --chart-4: #f2a600;
+  --chart-5: #ee7fac;
+  --chart-6: #008a17;
+  --chart-7: #6a4ce2;
+  --chart-8: #ec4647;
   color-scheme: light;
 }
 
@@ -63,14 +65,16 @@
   --ring: rgb(123 134 240 / 0.45);
   --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
   --shadow-md: 0 8px 24px -6px rgb(0 0 0 / 0.5);
-  --chart-1: #7b86f0;
-  --chart-2: #3cc2ad;
-  --chart-3: #f0a456;
-  --chart-4: #e06b9c;
-  --chart-5: #a5b84d;
-  --chart-6: #7fb0f0;
-  --chart-7: #b88be0;
-  --chart-8: #e3c04f;
+  /* Categorical series palette, validated with the dataviz CVD checker
+     (adjacent pairs; scatter-style charts cap at 3 series). Fixed order. */
+  --chart-1: #338ced;
+  --chart-2: #e76624;
+  --chart-3: #00a888;
+  --chart-4: #d28e05;
+  --chart-5: #e24d8b;
+  --chart-6: #0aac23;
+  --chart-7: #9887ef;
+  --chart-8: #eb6263;
   color-scheme: dark;
 }
 

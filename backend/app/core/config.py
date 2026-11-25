@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     data_dir: Path = Path("./data")
 
     # Auth: a development token is seeded so the local UI works without a login flow.
-    dev_token: str = "facet-dev-token"
+    dev_token: str = "facet-dev-token"  # noqa: S105 - local development only
     seed_dev_user: bool = True
     cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:3000"])
 

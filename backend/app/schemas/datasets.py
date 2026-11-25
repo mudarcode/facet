@@ -85,3 +85,11 @@ class PreviewOut(BaseModel):
     total_rows: int
     offset: int
     limit: int
+
+
+class ProfileOut(BaseModel):
+    status: Literal["ready", "pending", "failed"]
+    version_id: uuid.UUID
+    job_id: uuid.UUID | None = None
+    error: str | None = None
+    profile: dict[str, Any] | None = None
