@@ -1,0 +1,195 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/*
+ * Facet design tokens. Neutral, slightly cool greys with a single restrained
+ * indigo accent. Semantic colours are reserved for status.
+ */
+:root {
+  --bg: #f7f8fa;
+  --surface: #ffffff;
+  --surface-2: #f2f4f7;
+  --surface-3: #e9ecf1;
+  --border: #e3e6ec;
+  --border-strong: #cfd4dd;
+  --fg: #121722;
+  --fg-muted: #5b6475;
+  --fg-subtle: #8a93a3;
+  --accent: #4f5bd5;
+  --accent-hover: #4350c4;
+  --accent-soft: #eceefc;
+  --accent-fg: #ffffff;
+  --success: #1f8a5b;
+  --success-soft: #e6f4ed;
+  --warning: #b46b07;
+  --warning-soft: #fcf2e3;
+  --danger: #c93a3a;
+  --danger-soft: #fcebeb;
+  --ring: rgb(79 91 213 / 0.35);
+  --shadow-sm: 0 1px 2px rgb(16 24 40 / 0.05);
+  --shadow-md: 0 4px 16px -4px rgb(16 24 40 / 0.1), 0 2px 4px -2px rgb(16 24 40 / 0.05);
+  --chart-1: #4f5bd5;
+  --chart-2: #1f9d8b;
+  --chart-3: #e08a2e;
+  --chart-4: #c2477a;
+  --chart-5: #7a8b2f;
+  --chart-6: #5e8fd6;
+  --chart-7: #9a5fc9;
+  --chart-8: #c9a227;
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --bg: #0d1016;
+  --surface: #141821;
+  --surface-2: #1a1f2a;
+  --surface-3: #232937;
+  --border: #252b38;
+  --border-strong: #343c4d;
+  --fg: #e8ebf1;
+  --fg-muted: #9ea7b8;
+  --fg-subtle: #6c7587;
+  --accent: #7b86f0;
+  --accent-hover: #8e98f4;
+  --accent-soft: #1f2442;
+  --accent-fg: #0d1016;
+  --success: #45c08a;
+  --success-soft: #15291f;
+  --warning: #e3a245;
+  --warning-soft: #2c2213;
+  --danger: #ef6b6b;
+  --danger-soft: #2e1617;
+  --ring: rgb(123 134 240 / 0.45);
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-md: 0 8px 24px -6px rgb(0 0 0 / 0.5);
+  --chart-1: #7b86f0;
+  --chart-2: #3cc2ad;
+  --chart-3: #f0a456;
+  --chart-4: #e06b9c;
+  --chart-5: #a5b84d;
+  --chart-6: #7fb0f0;
+  --chart-7: #b88be0;
+  --chart-8: #e3c04f;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-fg: var(--fg);
+  --color-muted: var(--fg-muted);
+  --color-subtle: var(--fg-subtle);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-fg: var(--accent-fg);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SFMono-Regular", monospace;
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-feature-settings: "cv11", "ss01";
+  -webkit-font-smoothing: antialiased;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::selection {
+  background: var(--accent-soft);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Thin, unobtrusive scrollbars for dense data views. */
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+/* CodeMirror inherits the app palette. */
+.cm-editor {
+  height: 100%;
+  font-size: 13px;
+  background: var(--surface) !important;
+}
+.cm-editor.cm-focused {
+  outline: none !important;
+}
+.cm-scroller {
+  font-family: var(--font-geist-mono), ui-monospace, monospace !important;
+  line-height: 1.6 !important;
+}
+.cm-gutters {
+  background: var(--surface) !important;
+  border-right: 1px solid var(--border) !important;
+  color: var(--fg-subtle) !important;
+}
+.cm-activeLine,
+.cm-activeLineGutter {
+  background: color-mix(in srgb, var(--accent-soft) 55%, transparent) !important;
+}
+.cm-tooltip-autocomplete {
+  border: 1px solid var(--border) !important;
+  background: var(--surface) !important;
+  border-radius: 8px;
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+}
+.cm-tooltip-autocomplete ul li[aria-selected] {
+  background: var(--accent) !important;
+  color: var(--accent-fg) !important;
+}
+
+/* react-grid-layout */
+.react-grid-item.react-grid-placeholder {
+  background: var(--accent) !important;
+  opacity: 0.12 !important;
+  border-radius: 12px;
+}
+.react-grid-item > .react-resizable-handle::after {
+  border-color: var(--fg-subtle) !important;
+}
+
+@keyframes indeterminate {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(250%); }
+}
+.animate-indeterminate {
+  animation: indeterminate 1.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
