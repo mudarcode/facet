@@ -27,6 +27,7 @@ def workspace_settings(_: CurrentPrincipal) -> dict[str, Any]:
         "query_page_size_max": s.query_page_size_max,
         "max_concurrent_queries": s.query_workers,
         "export_max_rows": s.export_max_rows,
+        "export_link_ttl_s": s.export_link_ttl_s,
         "profile_sample_threshold": s.profile_sample_threshold,
         "supported_formats": ["csv", "tsv", "parquet"],
         "supported_encodings": ["auto", "utf-8", "utf-16", "latin-1"],

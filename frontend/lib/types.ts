@@ -204,3 +204,115 @@ export interface TransformPreview {
   truncated: boolean;
   engine_ms: number;
 }
+
+export type FilterOp =
+  | "=" | "!=" | ">" | ">=" | "<" | "<="
+  | "contains" | "not_contains" | "starts_with" | "ends_with"
+  | "is_null" | "is_not_null" | "in" | "not_in";
+
+export interface Condition {
+  column: string;
+  op: FilterOp;
+  value?: unknown;
+}
+
+export type ChartType = "bar" | "line" | "area" | "scatter" | "histogram" | "stat";
+export type Agg = "count" | "count_distinct" | "sum" | "avg" | "min" | "max" | "median";
+export type Grain = "none" | "day" | "week" | "month" | "quarter" | "year";
+
+export interface Measure {
+  field: string | null;
+  agg: Agg;
+  label?: string | null;
+}
+
+export interface ChartOptions {
+  title?: string | null;
+  x_label?: string | null;
+  y_label?: string | null;
+  stacked?: boolean;
+  bins?: number;
+  sort?: "x" | "y_desc" | "y_asc";
+  limit?: number;
+  show_values?: boolean;
+  orientation?: "vertical" | "horizontal";
+}
+
+export interface ChartSpec {
+  type: ChartType;
+  x?: string | null;
+  y: Measure[];
+  series?: string | null;
+  grain?: Grain;
+  filters?: Condition[];
+  options?: ChartOptions;
+}
+
+export interface ChartSource {
+  dataset_id?: string | null;
+  saved_query_id?: string | null;
+}
+
+export interface Chart extends ChartSource {
+  id: string;
+  name: string;
+  spec: ChartSpec;
+  created_at: string;
+  updated_at: string;
+  source_name: string | null;
+}
+
+export interface ChartMeta {
+  type: ChartType;
+  x: string | null;
+  measures: string[];
+  measure_labels?: string[];
+  series: string | null;
+  truncated: boolean;
+}
+
+export interface ChartData {
+  columns: ResultColumn[];
+  rows: unknown[][];
+  meta: ChartMeta;
+  sql: string;
+  engine_ms: number;
+  total_ms: number;
+}
+
+export interface LayoutItem {
+  i: string;
+  chart_id: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+export interface Dashboard {
+  id: string;
+  name: string;
+  description: string;
+  layout: LayoutItem[];
+  filters: Condition[];
+  created_at: string;
+  updated_at: string;
+}
+
+export type ExportSource =
+  | { kind: "query"; sql: string }
+  | { kind: "dataset"; dataset_id: string }
+  | { kind: "chart"; chart_id: string };
+
+export interface ExportRecord {
+  id: string;
+  job_id: string | null;
+  status: "queued" | "running" | "succeeded" | "failed";
+  format: "csv" | "parquet";
+  filename: string;
+  row_count: number | null;
+  bytes: number | null;
+  error: string | null;
+  created_at: string;
+  download_url: string | null;
+}

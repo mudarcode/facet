@@ -18,6 +18,7 @@ import { SchemaTab } from "./schema-tab";
 import { PreviewTab } from "./preview-tab";
 import { ProfileTab } from "./profile-tab";
 import { TransformTab } from "./transform-tab";
+import { ExportMenu } from "@/features/exports/export-menu";
 
 const TABS = ["overview", "schema", "preview", "profile", "transform"] as const;
 type Tab = (typeof TABS)[number];
@@ -82,6 +83,7 @@ export function DatasetDetail({ id }: { id: string }) {
             </Button>
             {ready ? (
               <>
+                <ExportMenu source={{ kind: "dataset", dataset_id: ds.id }} />
                 <Link href={`/charts/new?dataset=${ds.id}`} className={buttonClasses({ variant: "outline" })}>
                   <BarChart3 /> Chart
                 </Link>
