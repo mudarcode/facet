@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+backend/data/
+data/
+
+# Node
+node_modules/
+.next/
+frontend/test-results/
+frontend/playwright-report/
+*.tsbuildinfo
+
+# Env
+.env
+.env.local
+
+# Benchmarks: raw generated datasets are large and reproducible
+benchmarks/datasets/*
+!benchmarks/datasets/.gitkeep
