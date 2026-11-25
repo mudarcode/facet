@@ -16,6 +16,7 @@ from app.schemas.datasets import (
     DatasetVersionOut,
     IngestOptionsIn,
     PreviewOut,
+    ProfileOut,
     ReprocessIn,
 )
 from app.services import datasets as svc
@@ -167,3 +168,28 @@ async def preview(
         offset=offset,
         limit=limit,
     )
+
+
+@router.get("/{dataset_id}/profile", response_model=ProfileOut)
+def get_profile(dataset_id: uuid.UUID, db: DB, p: CurrentPrincipal) -> ProfileOut:
+    """Column statistics for the current version, computed by a background job."""
+    ds = svc.get(db, p.workspace_id, dataset_id)
+    v = ds.current_version
+    if v is None:
+        raise InvalidInput("Dataset has not finished processing.", code="not_ready")
+    if v.profile_json is not None:
+        return ProfileOut(status="ready", version_id=v.id, profile=v.profile_json)
+    job = svc.profile_job(db, p.workspace_id, v.id)
+    if job is None:
+        job = svc.request_profile(db, p.workspace_id, ds)
+    status = "failed" if job.status == "failed" else "pending"
+    return ProfileOut(status=status, version_id=v.id, job_id=job.id, error=job.error)
+
+
+@router.post("/{dataset_id}/profile", status_code=202, response_model=ProfileOut)
+def refresh_profile(dataset_id: uuid.UUID, db: DB, p: CurrentPrincipal) -> ProfileOut:
+    ds = svc.get(db, p.workspace_id, dataset_id)
+    if ds.current_version is None:
+        raise InvalidInput("Dataset has not finished processing.", code="not_ready")
+    job = svc.request_profile(db, p.workspace_id, ds, force=True)
+    return ProfileOut(status="pending", version_id=ds.current_version.id, job_id=job.id)

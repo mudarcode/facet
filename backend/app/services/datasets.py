@@ -346,3 +346,33 @@ def queryable_datasets(db: Session, workspace_id: uuid.UUID) -> dict[str, str]:
         )
     ).all()
     return {name: str(storage.local_path(key)) for name, key in rows if key}
+
+
+def profile_job(db: Session, workspace_id: uuid.UUID, version_id: uuid.UUID) -> Job | None:
+    return db.scalar(
+        select(Job)
+        .where(
+            Job.workspace_id == workspace_id,
+            Job.kind == "profile",
+            Job.payload["version_id"].astext == str(version_id),
+        )
+        .order_by(Job.created_at.desc())
+        .limit(1)
+    )
+
+
+def request_profile(
+    db: Session, workspace_id: uuid.UUID, ds: Dataset, *, force: bool = False
+) -> Job:
+    v = ds.current_version
+    assert v is not None
+    existing = profile_job(db, workspace_id, v.id)
+    if existing is not None and existing.status in ("queued", "running"):
+        return existing
+    if force:
+        v.profile_json = None
+    job = jobs.enqueue(
+        db, workspace_id, "profile", {"dataset_id": str(ds.id), "version_id": str(v.id)}
+    )
+    db.commit()
+    return job

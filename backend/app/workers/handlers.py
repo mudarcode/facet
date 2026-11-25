@@ -10,10 +10,11 @@ from typing import Any
 from sqlalchemy import select
 
 from app.analytics.ingest import IngestError, IngestOptions, ingest_file
+from app.analytics.profile import profile_parquet
 from app.core.config import get_settings
 from app.core.db import session_scope
 from app.models import Dataset, DatasetVersion, Job
-from app.services import activity
+from app.services import activity, jobs
 from app.storage import get_storage, processed_key
 
 log = logging.getLogger(__name__)
@@ -100,12 +101,47 @@ def handle_ingest(job: Job, progress: Progress) -> dict[str, Any]:
             dataset.id,
             f"{dataset.name} is ready ({result.row_count:,} rows)",
         )
+        # Profile in the background so the dataset is queryable immediately.
+        jobs.enqueue(
+            db,
+            job.workspace_id,
+            "profile",
+            {"dataset_id": str(dataset_id), "version_id": str(version_id)},
+        )
     return {
         "dataset_id": str(dataset_id),
         "version_id": str(version_id),
         "row_count": result.row_count,
         "duration_s": result.duration_s,
     }
+
+
+def handle_profile(job: Job, progress: Progress) -> dict[str, Any]:
+    settings = get_settings()
+    version_id = uuid.UUID(job.payload["version_id"])
+    with session_scope() as db:
+        version = db.scalar(
+            select(DatasetVersion)
+            .join(Dataset, Dataset.id == DatasetVersion.dataset_id)
+            .where(DatasetVersion.id == version_id, Dataset.workspace_id == job.workspace_id)
+        )
+        if version is None or version.status != "ready" or not version.processed_key:
+            raise PermanentJobError("Dataset version is not available for profiling.")
+        path = str(get_storage().local_path(version.processed_key))
+    progress(0.1, "Profiling columns")
+    profile = profile_parquet(
+        path,
+        memory_limit=settings.ingest_memory_limit,
+        threads=settings.ingest_threads,
+        sample_threshold=settings.profile_sample_threshold,
+        sample_rows=settings.profile_sample_rows,
+    )
+    with session_scope() as db:
+        version = db.get(DatasetVersion, version_id)
+        if version is None:
+            raise PermanentJobError("Dataset version was deleted during profiling.")
+        version.profile_json = profile
+    return {"version_id": str(version_id), "duration_s": profile["duration_s"]}
 
 
 def _mark_failed(version_id: uuid.UUID, error: str) -> None:
@@ -137,4 +173,5 @@ def on_final_failure(job: Job, error: str) -> None:
 
 HANDLERS: dict[str, Callable[[Job, Progress], dict[str, Any]]] = {
     "ingest": handle_ingest,
+    "profile": handle_profile,
 }
