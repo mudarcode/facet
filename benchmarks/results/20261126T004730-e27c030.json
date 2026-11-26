@@ -1,0 +1,1400 @@
+{
+  "environment": {
+    "timestamp_utc": "2026-11-26T00:47:30+00:00",
+    "git_rev": "e27c030",
+    "git_dirty": false,
+    "platform": "Linux-6.18.44-fc-v880-x86_64-with-glibc2.39",
+    "cpu_model": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+    "logical_cpus": 4,
+    "memory_gib": 15.7,
+    "python": "3.13.18",
+    "duckdb": "2.0.1",
+    "sqlglot": "30.35.0",
+    "postgres_client": "psql (PostgreSQL) 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)",
+    "api_settings": {
+      "max_upload_bytes": 2147483648,
+      "query_timeout_s": 30.0,
+      "query_memory_limit": "1GB",
+      "query_max_rows": 10000,
+      "query_page_size_max": 1000,
+      "max_concurrent_queries": 4,
+      "export_max_rows": 5000000,
+      "export_link_ttl_s": 600,
+      "profile_sample_threshold": 5000000,
+      "supported_formats": [
+        "csv",
+        "tsv",
+        "parquet"
+      ],
+      "supported_encodings": [
+        "auto",
+        "utf-8",
+        "utf-16",
+        "latin-1"
+      ]
+    },
+    "note": "Shared cloud VM; numbers include noise from co-tenants. API, worker, PostgreSQL and this client all ran on the same machine."
+  },
+  "guard": {
+    "iterations": 2000,
+    "microseconds_per_query": {
+      "count": 191.3,
+      "group_by_region": 465.7,
+      "top_categories": 426.7,
+      "monthly_series": 402.2,
+      "selective_filter": 249.5,
+      "count_distinct": 201.6,
+      "window_rank": 838.3,
+      "preview_page": 178.3
+    }
+  },
+  "runs": [
+    {
+      "rows": 100000,
+      "dataset": {
+        "rows": 100000,
+        "seed": 7,
+        "categories": 200,
+        "null_rate": 0.05,
+        "columns": 11,
+        "csv": "/home/user/facet/benchmarks/data/orders_100000_s7.csv",
+        "csv_bytes": 8838447,
+        "csv_sha256": "57b8c3fd060ef2ba82f1fe269f5fdee92f2a6152c02d850d2bc75f50e44ae83b",
+        "parquet": "/home/user/facet/benchmarks/data/orders_100000_s7.parquet",
+        "parquet_bytes": 1853467,
+        "generate_s": 0.288
+      },
+      "ingest_csv": {
+        "format": "csv",
+        "file_bytes": 8838447,
+        "upload_s": 0.05,
+        "worker_ingest_s": 0.229,
+        "end_to_end_s": 0.704,
+        "rows_per_s_worker": 436681,
+        "rows_per_s_end_to_end": 141980,
+        "upload_mib_per_s": 168.8,
+        "parquet_bytes_stored": 1853479,
+        "api_rss": {
+          "baseline_mib": 401.1,
+          "peak_mib": 401.1,
+          "delta_mib": 0.0
+        },
+        "worker_rss": {
+          "baseline_mib": 145.6,
+          "peak_mib": 180.5,
+          "delta_mib": 34.9
+        },
+        "dataset_id": "95f87f10-d30d-4f44-ae5b-05e83bb2508e",
+        "sql_name": "bench_100000_csv"
+      },
+      "ingest_parquet": {
+        "format": "parquet",
+        "file_bytes": 1853467,
+        "upload_s": 0.018,
+        "worker_ingest_s": 0.164,
+        "end_to_end_s": 0.672,
+        "rows_per_s_worker": 609756,
+        "rows_per_s_end_to_end": 148913,
+        "upload_mib_per_s": 96.7,
+        "parquet_bytes_stored": 1852375,
+        "api_rss": {
+          "baseline_mib": 401.1,
+          "peak_mib": 401.1,
+          "delta_mib": 0.0
+        },
+        "worker_rss": {
+          "baseline_mib": 145.2,
+          "peak_mib": 177.3,
+          "delta_mib": 32.0
+        },
+        "dataset_id": "5c9b8bc4-9d7d-4d66-88b1-a007f85487a0",
+        "sql_name": "bench_100000_parquet"
+      },
+      "profile": {
+        "profile_s": 0.1732,
+        "sampled": false,
+        "columns": 11
+      },
+      "queries": {
+        "count": {
+          "sql": "SELECT count(*) FROM bench_100000_csv",
+          "rows_returned": 1,
+          "cold": {
+            "engine_ms": 3.75,
+            "api_ms": 23.97,
+            "round_trip_ms": 36.92
+          },
+          "warm_engine_ms": {
+            "n": 7,
+            "min": 3.263,
+            "p50": 3.863,
+            "p95": 4.117,
+            "max": 4.187,
+            "mean": 3.819
+          },
+          "warm_api_ms": {
+            "n": 7,
+            "min": 23.759,
+            "p50": 24.049,
+            "p95": 25.451,
+            "max": 25.634,
+            "mean": 24.405
+          },
+          "warm_round_trip_ms": {
+            "n": 7,
+            "min": 30.629,
+            "p50": 31.964,
+            "p95": 36.419,
+            "max": 38.007,
+            "mean": 32.588
+          }
+        },
+        "group_by_region": {
+          "sql": "SELECT region, sum(qty * unit_price) AS revenue, count(*) AS n FROM bench_100000_csv GROUP BY region ORDER BY revenue DESC",
+          "rows_returned": 5,
+          "cold": {
+            "engine_ms": 9.0,
+            "api_ms": 29.62,
+            "round_trip_ms": 37.98
+          },
+          "warm_engine_ms": {
+            "n": 7,
+            "min": 8.417,
+            "p50": 9.902,
+            "p95": 11.95,
+            "max": 12.398,
+            "mean": 9.974
+          },
+          "warm_api_ms": {
+            "n": 7,
+            "min": 28.918,
+            "p50": 31.26,
+            "p95": 37.428,
+            "max": 38.246,
+            "mean": 32.507
+          },
+          "warm_round_trip_ms": {
+            "n": 7,
+            "min": 36.609,
+            "p50": 39.89,
+            "p95": 45.608,
+            "max": 46.375,
+            "mean": 40.708
+          }
+        },
+        "top_categories": {
+          "sql": "SELECT category, sum(qty * unit_price) AS revenue FROM bench_100000_csv GROUP BY category ORDER BY revenue DESC LIMIT 20",
+          "rows_returned": 20,
+          "cold": {
+            "engine_ms": 9.52,
+            "api_ms": 32.23,
+            "round_trip_ms": 40.17
+          },
+          "warm_engine_ms": {
+            "n": 7,
+            "min": 7.594,
+            "p50": 8.442,
+            "p95": 9.212,
+            "max": 9.482,
+            "mean": 8.428
+          },
+          "warm_api_ms": {
+            "n": 7,
+            "min": 26.673,
+            "p50": 29.062,
+            "p95": 31.01,
+            "max": 31.37,
+            "mean": 29.081
+          },
+          "warm_round_trip_ms": {
+            "n": 7,
+            "min": 35.929,
+            "p50": 37.253,
+            "p95": 38.949,
+            "max": 39.139,
+            "mean": 37.435
+          }
+        },
+        "monthly_series": {
+          "sql": "SELECT date_trunc('month', ordered_at) AS m, sum(qty) AS units FROM bench_100000_csv GROUP BY 1 ORDER BY 1",
+          "rows_returned": 24,
+          "cold": {
+            "engine_ms": 11.85,
+            "api_ms": 34.17,
+            "round_trip_ms": 43.44
+          },
+          "warm_engine_ms": {
+            "n": 7,
+            "min": 10.749,
+            "p50": 11.156,
+            "p95": 11.629,
+            "max": 11.652,
+            "mean": 11.225
+          },
+          "warm_api_ms": {
+            "n": 7,
+            "min": 31.498,
+            "p50": 32.595,
+            "p95": 33.609,
+            "max": 33.641,
+            "mean": 32.597
+          },
+          "warm_round_trip_ms": {
+            "n": 7,
+            "min": 40.326,
+            "p50": 41.113,
+            "p95": 42.117,
+            "max": 42.353,
+            "mean": 41.108
+          }
+        },
+        "selective_filter": {
+          "sql": "SELECT * FROM bench_100000_csv WHERE customer_id = 'cust_123' ORDER BY order_id",
+          "rows_returned": 4,
+          "cold": {
+            "engine_ms": 16.47,
+            "api_ms": 39.16,
+            "round_trip_ms": 48.17
+          },
+          "warm_engine_ms": {
+            "n": 7,
+            "min": 15.371,
+            "p50": 16.638,
+            "p95": 18.659,
+            "max": 18.922,
+            "mean": 16.928
+          },
+          "warm_api_ms": {
+            "n": 7,
+            "min": 35.472,
+            "p50": 38.586,
+            "p95": 44.382,
+            "max": 45.842,
+            "mean": 39.52
+          },
+          "warm_round_trip_ms": {
+            "n": 7,
+            "min": 43.63,
+            "p50": 47.603,
+            "p95": 55.203,
+            "max": 55.611,
+            "mean": 48.967
+          }
+        },
+        "count_distinct": {
+          "sql": "SELECT count(DISTINCT customer_id) FROM bench_100000_csv",
+          "rows_returned": 1,
+          "cold": {
+            "engine_ms": 13.0,
+            "api_ms": 33.66,
+            "round_trip_ms": 42.53
+          },
+          "warm_engine_ms": {
+            "n": 7,
+            "min": 11.785,
+            "p50": 12.936,
+            "p95": 22.15,
+            "max": 24.984,
+            "mean": 14.812
+          },
+          "warm_api_ms": {
+            "n": 7,
+            "min": 32.492,
+            "p50": 34.746,
+            "p95": 46.32,
+            "max": 50.209,
+            "mean": 36.864
+          },
+          "warm_round_trip_ms": {
+            "n": 7,
+            "min": 39.788,
+            "p50": 42.854,
+            "p95": 56.381,
+            "max": 60.986,
+            "mean": 45.382
+          }
+        },
+        "window_rank": {
+          "sql": "SELECT * FROM (SELECT region, category, sum(qty) AS units, rank() OVER (PARTITION BY region ORDER BY sum(qty) DESC) AS r FROM bench_100000_csv GROUP BY region, category) WHERE r <= 3 ORDER BY region, r",
+          "rows_returned": 15,
+          "cold": {
+            "engine_ms": 9.68,
+            "api_ms": 31.5,
+            "round_trip_ms": 40.25
+          },
+          "warm_engine_ms": {
+            "n": 7,
+            "min": 9.006,
+            "p50": 9.287,
+            "p95": 11.169,
+            "max": 11.544,
+            "mean": 9.679
+          },
+          "warm_api_ms": {
+            "n": 7,
+            "min": 29.696,
+            "p50": 31.383,
+            "p95": 34.702,
+            "max": 35.875,
+            "mean": 31.585
+          },
+          "warm_round_trip_ms": {
+            "n": 7,
+            "min": 37.216,
+            "p50": 38.931,
+            "p95": 42.296,
+            "max": 43.261,
+            "mean": 39.36
+          }
+        },
+        "preview_page": {
+          "sql": "SELECT * FROM bench_100000_csv LIMIT 100",
+          "rows_returned": 100,
+          "cold": {
+            "engine_ms": 15.32,
+            "api_ms": 36.04,
+            "round_trip_ms": 43.45
+          },
+          "warm_engine_ms": {
+            "n": 7,
+            "min": 14.666,
+            "p50": 15.383,
+            "p95": 15.831,
+            "max": 15.927,
+            "mean": 15.367
+          },
+          "warm_api_ms": {
+            "n": 7,
+            "min": 35.479,
+            "p50": 36.901,
+            "p95": 38.009,
+            "max": 38.094,
+            "mean": 36.93
+          },
+          "warm_round_trip_ms": {
+            "n": 7,
+            "min": 42.557,
+            "p50": 46.277,
+            "p95": 47.104,
+            "max": 47.204,
+            "mean": 45.621
+          }
+        }
+      },
+      "concurrency": {
+        "query": "top_categories",
+        "parallel_clients": 8,
+        "requests": 32,
+        "status_counts": {
+          "200": 32
+        },
+        "wall_s": 0.368,
+        "throughput_qps": 86.86,
+        "round_trip_ms": {
+          "n": 32,
+          "min": 62.96,
+          "p50": 81.151,
+          "p95": 120.058,
+          "max": 123.189,
+          "mean": 84.789
+        }
+      },
+      "exports": {
+        "csv": {
+          "worker_s": 0.155,
+          "end_to_end_s": 0.362,
+          "rows_per_s_worker": 645161,
+          "bytes": 8838447,
+          "worker_rss": {
+            "baseline_mib": 145.6,
+            "peak_mib": 179.9,
+            "delta_mib": 34.3
+          }
+        },
+        "parquet": {
+          "worker_s": 0.143,
+          "end_to_end_s": 0.667,
+          "rows_per_s_worker": 699301,
+          "bytes": 1852387,
+          "worker_rss": {
+            "baseline_mib": 145.3,
+            "peak_mib": 174.6,
+            "delta_mib": 29.3
+          }
+        }
+      },
+      "engine": {
+        "memory_limit": "1GB",
+        "threads": 2,
+        "repeats": 7,
+        "results": {
+          "group_by": {
+            "csv_ms": {
+              "n": 7,
+              "min": 60.783,
+              "p50": 62.219,
+              "p95": 76.535,
+              "max": 76.675,
+              "mean": 67.854
+            },
+            "parquet_ms": {
+              "n": 7,
+              "min": 3.077,
+              "p50": 3.427,
+              "p95": 3.951,
+              "max": 4.069,
+              "mean": 3.47
+            },
+            "parquet_speedup_p50": 18.2
+          },
+          "narrow_1_col": {
+            "csv_ms": {
+              "n": 7,
+              "min": 70.651,
+              "p50": 75.603,
+              "p95": 80.892,
+              "max": 82.551,
+              "mean": 75.157
+            },
+            "parquet_ms": {
+              "n": 7,
+              "min": 0.693,
+              "p50": 0.789,
+              "p95": 0.878,
+              "max": 0.883,
+              "mean": 0.802
+            },
+            "parquet_speedup_p50": 95.8
+          },
+          "wide_11_cols": {
+            "csv_ms": {
+              "n": 7,
+              "min": 97.746,
+              "p50": 103.391,
+              "p95": 118.603,
+              "max": 119.196,
+              "mean": 106.98
+            },
+            "parquet_ms": {
+              "n": 7,
+              "min": 14.481,
+              "p50": 14.909,
+              "p95": 15.201,
+              "max": 15.268,
+              "mean": 14.84
+            },
+            "parquet_speedup_p50": 6.9
+          }
+        }
+      },
+      "sandbox_setup": {
+        "open_and_close_ms": {
+          "n": 50,
+          "min": 13.892,
+          "p50": 17.233,
+          "p95": 20.108,
+          "max": 25.114,
+          "mean": 17.353
+        }
+      }
+    },
+    {
+      "rows": 1000000,
+      "dataset": {
+        "rows": 1000000,
+        "seed": 7,
+        "categories": 200,
+        "null_rate": 0.05,
+        "columns": 11,
+        "csv": "/home/user/facet/benchmarks/data/orders_1000000_s7.csv",
+        "csv_bytes": 90372109,
+        "csv_sha256": "b585ce39f5ba4dabd2abaf5c070dd7d26e9b67b0036382297701575c117b5404",
+        "parquet": "/home/user/facet/benchmarks/data/orders_1000000_s7.parquet",
+        "parquet_bytes": 18904644,
+        "generate_s": 1.366
+      },
+      "ingest_csv": {
+        "format": "csv",
+        "file_bytes": 90372109,
+        "upload_s": 0.248,
+        "worker_ingest_s": 0.606,
+        "end_to_end_s": 0.903,
+        "rows_per_s_worker": 1650165,
+        "rows_per_s_end_to_end": 1106900,
+        "upload_mib_per_s": 346.8,
+        "parquet_bytes_stored": 18916544,
+        "api_rss": {
+          "baseline_mib": 403.2,
+          "peak_mib": 403.2,
+          "delta_mib": 0.0
+        },
+        "worker_rss": {
+          "baseline_mib": 145.0,
+          "peak_mib": 428.4,
+          "delta_mib": 283.4
+        },
+        "dataset_id": "9c56c9d8-4945-4565-9c31-b02f5ab8a659",
+        "sql_name": "bench_1000000_csv"
+      },
+      "ingest_parquet": {
+        "format": "parquet",
+        "file_bytes": 18904644,
+        "upload_s": 0.06,
+        "worker_ingest_s": 0.341,
+        "end_to_end_s": 0.937,
+        "rows_per_s_worker": 2932551,
+        "rows_per_s_end_to_end": 1067209,
+        "upload_mib_per_s": 302.6,
+        "parquet_bytes_stored": 18897170,
+        "api_rss": {
+          "baseline_mib": 403.2,
+          "peak_mib": 403.2,
+          "delta_mib": 0.0
+        },
+        "worker_rss": {
+          "baseline_mib": 206.6,
+          "peak_mib": 398.2,
+          "delta_mib": 191.6
+        },
+        "dataset_id": "1f733a40-29fa-4938-aaa7-69ca0173ef28",
+        "sql_name": "bench_1000000_parquet"
+      },
+      "profile": {
+        "profile_s": 0.5173,
+        "sampled": false,
+        "columns": 11
+      },
+      "queries": {
+        "count": {
+          "sql": "SELECT count(*) FROM bench_1000000_csv",
+          "rows_returned": 1,
+          "cold": {
+            "engine_ms": 3.84,
+            "api_ms": 22.91,
+            "round_trip_ms": 32.41
+          },
+          "warm_engine_ms": {
+            "n": 7,
+            "min": 3.274,
+            "p50": 3.655,
+            "p95": 6.038,
+            "max": 6.946,
+            "mean": 4.041
+          },
+          "warm_api_ms": {
+            "n": 7,
+            "min": 22.536,
+            "p50": 27.695,
+            "p95": 32.652,
+            "max": 33.267,
+            "mean": 27.082
+          },
+          "warm_round_trip_ms": {
+            "n": 7,
+            "min": 29.872,
+            "p50": 38.735,
+            "p95": 46.349,
+            "max": 47.743,
+            "mean": 37.483
+          }
+        },
+        "group_by_region": {
+          "sql": "SELECT region, sum(qty * unit_price) AS revenue, count(*) AS n FROM bench_1000000_csv GROUP BY region ORDER BY revenue DESC",
+          "rows_returned": 5,
+          "cold": {
+            "engine_ms": 21.13,
+            "api_ms": 43.35,
+            "round_trip_ms": 51.95
+          },
+          "warm_engine_ms": {
+            "n": 7,
+            "min": 19.155,
+            "p50": 19.829,
+            "p95": 23.011,
+            "max": 23.494,
+            "mean": 20.615
+          },
+          "warm_api_ms": {
+            "n": 7,
+            "min": 41.467,
+            "p50": 42.806,
+            "p95": 48.705,
+            "max": 49.101,
+            "mean": 44.684
+          },
+          "warm_round_trip_ms": {
+            "n": 7,
+            "min": 49.567,
+            "p50": 51.46,
+            "p95": 57.425,
+            "max": 58.211,
+            "mean": 53.087
+          }
+        },
+        "top_categories": {
+          "sql": "SELECT category, sum(qty * unit_price) AS revenue FROM bench_1000000_csv GROUP BY category ORDER BY revenue DESC LIMIT 20",
+          "rows_returned": 20,
+          "cold": {
+            "engine_ms": 18.78,
+            "api_ms": 42.63,
+            "round_trip_ms": 51.14
+          },
+          "warm_engine_ms": {
+            "n": 7,
+            "min": 17.398,
+            "p50": 20.384,
+            "p95": 22.151,
+            "max": 22.426,
+            "mean": 19.885
+          },
+          "warm_api_ms": {
+            "n": 7,
+            "min": 38.96,
+            "p50": 43.596,
+            "p95": 57.115,
+            "max": 59.309,
+            "mean": 45.775
+          },
+          "warm_round_trip_ms": {
+            "n": 7,
+            "min": 47.178,
+            "p50": 51.196,
+            "p95": 65.657,
+            "max": 68.026,
+            "mean": 54.129
+          }
+        },
+        "monthly_series": {
+          "sql": "SELECT date_trunc('month', ordered_at) AS m, sum(qty) AS units FROM bench_1000000_csv GROUP BY 1 ORDER BY 1",
+          "rows_returned": 24,
+          "cold": {
+            "engine_ms": 29.12,
+            "api_ms": 50.31,
+            "round_trip_ms": 60.37
+          },
+          "warm_engine_ms": {
+            "n": 7,
+            "min": 26.742,
+            "p50": 29.24,
+            "p95": 30.08,
+            "max": 30.122,
+            "mean": 28.987
+          },
+          "warm_api_ms": {
+            "n": 7,
+            "min": 45.462,
+            "p50": 49.744,
+            "p95": 52.033,
+            "max": 52.068,
+            "mean": 49.669
+          },
+          "warm_round_trip_ms": {
+            "n": 7,
+            "min": 53.192,
+            "p50": 58.188,
+            "p95": 60.435,
+            "max": 60.693,
+            "mean": 57.905
+          }
+        },
+        "selective_filter": {
+          "sql": "SELECT * FROM bench_1000000_csv WHERE customer_id = 'cust_123' ORDER BY order_id",
+          "rows_returned": 5,
+          "cold": {
+            "engine_ms": 40.82,
+            "api_ms": 62.6,
+            "round_trip_ms": 72.74
+          },
+          "warm_engine_ms": {
+            "n": 7,
+            "min": 37.404,
+            "p50": 41.565,
+            "p95": 48.274,
+            "max": 49.114,
+            "mean": 42.263
+          },
+          "warm_api_ms": {
+            "n": 7,
+            "min": 57.793,
+            "p50": 63.507,
+            "p95": 74.625,
+            "max": 76.652,
+            "mean": 64.207
+          },
+          "warm_round_trip_ms": {
+            "n": 7,
+            "min": 66.276,
+            "p50": 71.719,
+            "p95": 83.154,
+            "max": 84.911,
+            "mean": 72.718
+          }
+        },
+        "count_distinct": {
+          "sql": "SELECT count(DISTINCT customer_id) FROM bench_1000000_csv",
+          "rows_returned": 1,
+          "cold": {
+            "engine_ms": 62.53,
+            "api_ms": 84.08,
+            "round_trip_ms": 92.45
+          },
+          "warm_engine_ms": {
+            "n": 7,
+            "min": 62.363,
+            "p50": 64.337,
+            "p95": 71.815,
+            "max": 72.594,
+            "mean": 65.945
+          },
+          "warm_api_ms": {
+            "n": 7,
+            "min": 84.058,
+            "p50": 85.964,
+            "p95": 92.506,
+            "max": 94.305,
+            "mean": 87.002
+          },
+          "warm_round_trip_ms": {
+            "n": 7,
+            "min": 93.371,
+            "p50": 94.152,
+            "p95": 102.571,
+            "max": 104.409,
+            "mean": 96.231
+          }
+        },
+        "window_rank": {
+          "sql": "SELECT * FROM (SELECT region, category, sum(qty) AS units, rank() OVER (PARTITION BY region ORDER BY sum(qty) DESC) AS r FROM bench_1000000_csv GROUP BY region, category) WHERE r <= 3 ORDER BY region, r",
+          "rows_returned": 15,
+          "cold": {
+            "engine_ms": 25.39,
+            "api_ms": 64.95,
+            "round_trip_ms": 75.15
+          },
+          "warm_engine_ms": {
+            "n": 7,
+            "min": 15.48,
+            "p50": 19.176,
+            "p95": 21.603,
+            "max": 22.215,
+            "mean": 18.478
+          },
+          "warm_api_ms": {
+            "n": 7,
+            "min": 35.07,
+            "p50": 45.776,
+            "p95": 61.632,
+            "max": 65.201,
+            "mean": 46.44
+          },
+          "warm_round_trip_ms": {
+            "n": 7,
+            "min": 43.464,
+            "p50": 54.915,
+            "p95": 71.658,
+            "max": 75.078,
+            "mean": 55.556
+          }
+        },
+        "preview_page": {
+          "sql": "SELECT * FROM bench_1000000_csv LIMIT 100",
+          "rows_returned": 100,
+          "cold": {
+            "engine_ms": 20.31,
+            "api_ms": 49.14,
+            "round_trip_ms": 58.65
+          },
+          "warm_engine_ms": {
+            "n": 7,
+            "min": 18.355,
+            "p50": 21.816,
+            "p95": 24.911,
+            "max": 25.092,
+            "mean": 21.818
+          },
+          "warm_api_ms": {
+            "n": 7,
+            "min": 40.826,
+            "p50": 49.462,
+            "p95": 52.753,
+            "max": 53.683,
+            "mean": 48.565
+          },
+          "warm_round_trip_ms": {
+            "n": 7,
+            "min": 49.688,
+            "p50": 57.949,
+            "p95": 61.802,
+            "max": 61.899,
+            "mean": 57.553
+          }
+        }
+      },
+      "concurrency": {
+        "query": "top_categories",
+        "parallel_clients": 8,
+        "requests": 32,
+        "status_counts": {
+          "200": 32
+        },
+        "wall_s": 0.654,
+        "throughput_qps": 48.92,
+        "round_trip_ms": {
+          "n": 32,
+          "min": 80.743,
+          "p50": 154.971,
+          "p95": 202.024,
+          "max": 261.852,
+          "mean": 150.123
+        }
+      },
+      "exports": {
+        "csv": {
+          "worker_s": 0.876,
+          "end_to_end_s": 1.309,
+          "rows_per_s_worker": 1141553,
+          "bytes": 90372109,
+          "worker_rss": {
+            "baseline_mib": 148.2,
+            "peak_mib": 278.4,
+            "delta_mib": 130.2
+          }
+        },
+        "parquet": {
+          "worker_s": 0.79,
+          "end_to_end_s": 1.314,
+          "rows_per_s_worker": 1265823,
+          "bytes": 18906972,
+          "worker_rss": {
+            "baseline_mib": 147.2,
+            "peak_mib": 270.0,
+            "delta_mib": 122.8
+          }
+        }
+      },
+      "engine": {
+        "memory_limit": "1GB",
+        "threads": 2,
+        "repeats": 7,
+        "results": {
+          "group_by": {
+            "csv_ms": {
+              "n": 7,
+              "min": 156.744,
+              "p50": 169.372,
+              "p95": 187.57,
+              "max": 194.738,
+              "mean": 171.43
+            },
+            "parquet_ms": {
+              "n": 7,
+              "min": 10.541,
+              "p50": 11.861,
+              "p95": 12.651,
+              "max": 12.924,
+              "mean": 11.578
+            },
+            "parquet_speedup_p50": 14.3
+          },
+          "narrow_1_col": {
+            "csv_ms": {
+              "n": 7,
+              "min": 136.967,
+              "p50": 153.002,
+              "p95": 156.559,
+              "max": 156.83,
+              "mean": 150.601
+            },
+            "parquet_ms": {
+              "n": 7,
+              "min": 0.782,
+              "p50": 0.887,
+              "p95": 0.943,
+              "max": 0.96,
+              "mean": 0.869
+            },
+            "parquet_speedup_p50": 172.5
+          },
+          "wide_11_cols": {
+            "csv_ms": {
+              "n": 7,
+              "min": 266.527,
+              "p50": 301.436,
+              "p95": 348.586,
+              "max": 362.531,
+              "mean": 305.177
+            },
+            "parquet_ms": {
+              "n": 7,
+              "min": 70.35,
+              "p50": 80.485,
+              "p95": 87.618,
+              "max": 90.281,
+              "mean": 79.112
+            },
+            "parquet_speedup_p50": 3.7
+          }
+        }
+      },
+      "sandbox_setup": {
+        "open_and_close_ms": {
+          "n": 50,
+          "min": 14.333,
+          "p50": 16.199,
+          "p95": 19.225,
+          "max": 20.508,
+          "mean": 16.404
+        }
+      }
+    },
+    {
+      "rows": 5000000,
+      "dataset": {
+        "rows": 5000000,
+        "seed": 7,
+        "categories": 200,
+        "null_rate": 0.05,
+        "columns": 11,
+        "csv": "/home/user/facet/benchmarks/data/orders_5000000_s7.csv",
+        "csv_bytes": 459094845,
+        "csv_sha256": null,
+        "parquet": "/home/user/facet/benchmarks/data/orders_5000000_s7.parquet",
+        "parquet_bytes": 96513871,
+        "generate_s": 6.496
+      },
+      "ingest_csv": {
+        "format": "csv",
+        "file_bytes": 459094845,
+        "upload_s": 1.308,
+        "worker_ingest_s": 2.202,
+        "end_to_end_s": 3.621,
+        "rows_per_s_worker": 2270663,
+        "rows_per_s_end_to_end": 1380803,
+        "upload_mib_per_s": 334.8,
+        "parquet_bytes_stored": 96539221,
+        "api_rss": {
+          "baseline_mib": 407.8,
+          "peak_mib": 407.8,
+          "delta_mib": 0.0
+        },
+        "worker_rss": {
+          "baseline_mib": 148.5,
+          "peak_mib": 752.0,
+          "delta_mib": 603.4
+        },
+        "dataset_id": "7108784a-1fac-4cd0-9f03-3b6ac62f4804",
+        "sql_name": "bench_5000000_csv"
+      },
+      "ingest_parquet": {
+        "format": "parquet",
+        "file_bytes": 96513871,
+        "upload_s": 0.289,
+        "worker_ingest_s": 1.025,
+        "end_to_end_s": 2.91,
+        "rows_per_s_worker": 4878049,
+        "rows_per_s_end_to_end": 1718188,
+        "upload_mib_per_s": 318.2,
+        "parquet_bytes_stored": 96518828,
+        "api_rss": {
+          "baseline_mib": 407.8,
+          "peak_mib": 407.8,
+          "delta_mib": 0.0
+        },
+        "worker_rss": {
+          "baseline_mib": 222.0,
+          "peak_mib": 601.4,
+          "delta_mib": 379.4
+        },
+        "dataset_id": "bd7c5442-b019-4b0c-8a0c-6b64b28e153c",
+        "sql_name": "bench_5000000_parquet"
+      },
+      "profile": {
+        "profile_s": 1.8415,
+        "sampled": false,
+        "columns": 11
+      },
+      "queries": {
+        "count": {
+          "sql": "SELECT count(*) FROM bench_5000000_csv",
+          "rows_returned": 1,
+          "cold": {
+            "engine_ms": 5.29,
+            "api_ms": 28.58,
+            "round_trip_ms": 35.83
+          },
+          "warm_engine_ms": {
+            "n": 7,
+            "min": 4.414,
+            "p50": 5.363,
+            "p95": 55.038,
+            "max": 74.845,
+            "mean": 15.743
+          },
+          "warm_api_ms": {
+            "n": 7,
+            "min": 26.185,
+            "p50": 29.043,
+            "p95": 79.558,
+            "max": 97.284,
+            "mean": 39.51
+          },
+          "warm_round_trip_ms": {
+            "n": 7,
+            "min": 34.218,
+            "p50": 39.957,
+            "p95": 98.679,
+            "max": 119.218,
+            "mean": 51.731
+          }
+        },
+        "group_by_region": {
+          "sql": "SELECT region, sum(qty * unit_price) AS revenue, count(*) AS n FROM bench_5000000_csv GROUP BY region ORDER BY revenue DESC",
+          "rows_returned": 5,
+          "cold": {
+            "engine_ms": 64.8,
+            "api_ms": 87.54,
+            "round_trip_ms": 101.86
+          },
+          "warm_engine_ms": {
+            "n": 7,
+            "min": 63.35,
+            "p50": 74.66,
+            "p95": 88.344,
+            "max": 89.786,
+            "mean": 74.962
+          },
+          "warm_api_ms": {
+            "n": 7,
+            "min": 86.297,
+            "p50": 95.936,
+            "p95": 112.004,
+            "max": 112.9,
+            "mean": 98.776
+          },
+          "warm_round_trip_ms": {
+            "n": 7,
+            "min": 95.24,
+            "p50": 107.419,
+            "p95": 122.674,
+            "max": 123.715,
+            "mean": 108.648
+          }
+        },
+        "top_categories": {
+          "sql": "SELECT category, sum(qty * unit_price) AS revenue FROM bench_5000000_csv GROUP BY category ORDER BY revenue DESC LIMIT 20",
+          "rows_returned": 20,
+          "cold": {
+            "engine_ms": 66.88,
+            "api_ms": 92.32,
+            "round_trip_ms": 102.53
+          },
+          "warm_engine_ms": {
+            "n": 7,
+            "min": 54.808,
+            "p50": 60.594,
+            "p95": 68.058,
+            "max": 68.874,
+            "mean": 61.498
+          },
+          "warm_api_ms": {
+            "n": 7,
+            "min": 76.866,
+            "p50": 85.51,
+            "p95": 95.965,
+            "max": 98.117,
+            "mean": 86.686
+          },
+          "warm_round_trip_ms": {
+            "n": 7,
+            "min": 86.662,
+            "p50": 95.971,
+            "p95": 106.093,
+            "max": 108.286,
+            "mean": 96.239
+          }
+        },
+        "monthly_series": {
+          "sql": "SELECT date_trunc('month', ordered_at) AS m, sum(qty) AS units FROM bench_5000000_csv GROUP BY 1 ORDER BY 1",
+          "rows_returned": 24,
+          "cold": {
+            "engine_ms": 108.28,
+            "api_ms": 134.45,
+            "round_trip_ms": 143.62
+          },
+          "warm_engine_ms": {
+            "n": 7,
+            "min": 100.704,
+            "p50": 108.547,
+            "p95": 113.534,
+            "max": 114.374,
+            "mean": 108.624
+          },
+          "warm_api_ms": {
+            "n": 7,
+            "min": 121.327,
+            "p50": 130.749,
+            "p95": 136.562,
+            "max": 137.533,
+            "mean": 130.008
+          },
+          "warm_round_trip_ms": {
+            "n": 7,
+            "min": 129.212,
+            "p50": 138.432,
+            "p95": 145.452,
+            "max": 146.847,
+            "mean": 138.342
+          }
+        },
+        "selective_filter": {
+          "sql": "SELECT * FROM bench_5000000_csv WHERE customer_id = 'cust_123' ORDER BY order_id",
+          "rows_returned": 3,
+          "cold": {
+            "engine_ms": 111.13,
+            "api_ms": 131.41,
+            "round_trip_ms": 140.54
+          },
+          "warm_engine_ms": {
+            "n": 7,
+            "min": 103.434,
+            "p50": 114.694,
+            "p95": 149.908,
+            "max": 163.678,
+            "mean": 118.772
+          },
+          "warm_api_ms": {
+            "n": 7,
+            "min": 122.194,
+            "p50": 135.662,
+            "p95": 176.604,
+            "max": 193.177,
+            "mean": 140.606
+          },
+          "warm_round_trip_ms": {
+            "n": 7,
+            "min": 129.891,
+            "p50": 144.571,
+            "p95": 186.073,
+            "max": 202.683,
+            "mean": 149.527
+          }
+        },
+        "count_distinct": {
+          "sql": "SELECT count(DISTINCT customer_id) FROM bench_5000000_csv",
+          "rows_returned": 1,
+          "cold": {
+            "engine_ms": 291.6,
+            "api_ms": 310.0,
+            "round_trip_ms": 319.06
+          },
+          "warm_engine_ms": {
+            "n": 7,
+            "min": 278.077,
+            "p50": 329.078,
+            "p95": 345.17,
+            "max": 348.592,
+            "mean": 319.508
+          },
+          "warm_api_ms": {
+            "n": 7,
+            "min": 296.832,
+            "p50": 351.041,
+            "p95": 365.003,
+            "max": 367.864,
+            "mean": 341.452
+          },
+          "warm_round_trip_ms": {
+            "n": 7,
+            "min": 304.779,
+            "p50": 359.672,
+            "p95": 374.531,
+            "max": 376.931,
+            "mean": 350.545
+          }
+        },
+        "window_rank": {
+          "sql": "SELECT * FROM (SELECT region, category, sum(qty) AS units, rank() OVER (PARTITION BY region ORDER BY sum(qty) DESC) AS r FROM bench_5000000_csv GROUP BY region, category) WHERE r <= 3 ORDER BY region, r",
+          "rows_returned": 15,
+          "cold": {
+            "engine_ms": 46.62,
+            "api_ms": 69.77,
+            "round_trip_ms": 78.44
+          },
+          "warm_engine_ms": {
+            "n": 7,
+            "min": 40.542,
+            "p50": 44.0,
+            "p95": 44.328,
+            "max": 44.413,
+            "mean": 43.112
+          },
+          "warm_api_ms": {
+            "n": 7,
+            "min": 59.266,
+            "p50": 66.32,
+            "p95": 68.489,
+            "max": 69.183,
+            "mean": 65.275
+          },
+          "warm_round_trip_ms": {
+            "n": 7,
+            "min": 66.727,
+            "p50": 74.396,
+            "p95": 76.295,
+            "max": 76.519,
+            "mean": 73.182
+          }
+        },
+        "preview_page": {
+          "sql": "SELECT * FROM bench_5000000_csv LIMIT 100",
+          "rows_returned": 100,
+          "cold": {
+            "engine_ms": 21.42,
+            "api_ms": 47.83,
+            "round_trip_ms": 55.31
+          },
+          "warm_engine_ms": {
+            "n": 7,
+            "min": 18.264,
+            "p50": 19.248,
+            "p95": 23.19,
+            "max": 24.398,
+            "mean": 19.809
+          },
+          "warm_api_ms": {
+            "n": 7,
+            "min": 37.428,
+            "p50": 40.84,
+            "p95": 49.986,
+            "max": 52.437,
+            "mean": 42.076
+          },
+          "warm_round_trip_ms": {
+            "n": 7,
+            "min": 45.49,
+            "p50": 48.15,
+            "p95": 57.756,
+            "max": 60.203,
+            "mean": 49.681
+          }
+        }
+      },
+      "concurrency": {
+        "query": "top_categories",
+        "parallel_clients": 8,
+        "requests": 32,
+        "status_counts": {
+          "200": 32
+        },
+        "wall_s": 1.213,
+        "throughput_qps": 26.37,
+        "round_trip_ms": {
+          "n": 32,
+          "min": 142.263,
+          "p50": 285.582,
+          "p95": 351.106,
+          "max": 368.356,
+          "mean": 276.517
+        }
+      },
+      "exports": {
+        "csv": {
+          "worker_s": 4.383,
+          "end_to_end_s": 4.76,
+          "rows_per_s_worker": 1140771,
+          "bytes": 459094845,
+          "worker_rss": {
+            "baseline_mib": 150.4,
+            "peak_mib": 475.2,
+            "delta_mib": 324.8
+          }
+        },
+        "parquet": {
+          "worker_s": 3.636,
+          "end_to_end_s": 4.126,
+          "rows_per_s_worker": 1375138,
+          "bytes": 96541153,
+          "worker_rss": {
+            "baseline_mib": 151.1,
+            "peak_mib": 457.4,
+            "delta_mib": 306.3
+          }
+        }
+      },
+      "engine": {
+        "memory_limit": "1GB",
+        "threads": 2,
+        "repeats": 7,
+        "results": {
+          "group_by": {
+            "csv_ms": {
+              "n": 7,
+              "min": 568.628,
+              "p50": 610.063,
+              "p95": 679.517,
+              "max": 679.754,
+              "mean": 620.225
+            },
+            "parquet_ms": {
+              "n": 7,
+              "min": 45.173,
+              "p50": 46.417,
+              "p95": 48.532,
+              "max": 48.597,
+              "mean": 46.743
+            },
+            "parquet_speedup_p50": 13.1
+          },
+          "narrow_1_col": {
+            "csv_ms": {
+              "n": 7,
+              "min": 490.516,
+              "p50": 522.224,
+              "p95": 548.706,
+              "max": 550.582,
+              "mean": 522.294
+            },
+            "parquet_ms": {
+              "n": 7,
+              "min": 1.14,
+              "p50": 1.223,
+              "p95": 1.284,
+              "max": 1.309,
+              "mean": 1.207
+            },
+            "parquet_speedup_p50": 427.0
+          },
+          "wide_11_cols": {
+            "csv_ms": {
+              "n": 7,
+              "min": 1162.828,
+              "p50": 1204.742,
+              "p95": 1272.856,
+              "max": 1289.528,
+              "mean": 1212.302
+            },
+            "parquet_ms": {
+              "n": 7,
+              "min": 309.427,
+              "p50": 334.749,
+              "p95": 351.245,
+              "max": 354.808,
+              "mean": 333.721
+            },
+            "parquet_speedup_p50": 3.6
+          }
+        }
+      },
+      "sandbox_setup": {
+        "open_and_close_ms": {
+          "n": 50,
+          "min": 14.436,
+          "p50": 17.189,
+          "p95": 23.611,
+          "max": 25.395,
+          "mean": 17.847
+        }
+      }
+    }
+  ]
+}

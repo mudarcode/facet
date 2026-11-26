@@ -1,0 +1,5 @@
+extend = "../backend/pyproject.toml"
+
+[lint]
+# Embedded SQL strings and the git/psql environment probes are deliberate here.
+extend-ignore = ["E501", "S603", "S607", "SIM105", "I001", "RUF001", "RUF100"]
