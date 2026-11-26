@@ -316,3 +316,12 @@ export interface ExportRecord {
   created_at: string;
   download_url: string | null;
 }
+
+export interface ActivityEvent {
+  id: string;
+  kind: string;
+  subject_type: string;
+  subject_id: string | null;
+  summary: string;
+  created_at: string;
+}

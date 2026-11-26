@@ -2,7 +2,7 @@
  * Typed client for the Facet API. All requests go straight to the FastAPI server
  * (CORS-enabled) so large uploads stream without passing through Next.js.
  */
-import type { Dataset, IngestOptions, Job, Page, Preview, QueryResult, ColumnSchema, DatasetVersion, ProfileResponse, SavedQuery, QueryRun, Transformation, TransformPreview, TransformStep, Chart, ChartData, ChartSource, ChartSpec, Condition, Dashboard, ExportRecord, ExportSource, LayoutItem } from "./types";
+import type { Dataset, IngestOptions, Job, Page, Preview, QueryResult, ColumnSchema, DatasetVersion, ProfileResponse, SavedQuery, QueryRun, Transformation, TransformPreview, TransformStep, Chart, ChartData, ChartSource, ChartSpec, Condition, Dashboard, ExportRecord, ExportSource, LayoutItem, ActivityEvent } from "./types";
 
 export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
 const TOKEN = process.env.NEXT_PUBLIC_FACET_TOKEN ?? "facet-dev-token";
@@ -154,6 +154,8 @@ export const api = {
   createExport: (source: ExportSource, format: "csv" | "parquet") =>
     request<ExportRecord>(`/exports`, { method: "POST", json: { source, format } }),
   getExport: (id: string) => request<ExportRecord>(`/exports/${id}`),
+  activity: (limit = 12) => request<ActivityEvent[]>(`/activity?limit=${limit}`),
+  summary: () => request<{ datasets: number; saved_queries: number; charts: number; dashboards: number }>(`/workspace/summary`),
 };
 
 export const absoluteUrl = (path: string) => `${API_URL}${path}`;

@@ -20,10 +20,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="font-sans">
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-md focus:bg-surface focus:px-3 focus:py-2 focus:text-[13px] focus:shadow-md"
+        >
+          Skip to content
+        </a>
         <Providers>
           <div className="flex h-dvh overflow-hidden">
             <Sidebar />
-            <main className="flex min-w-0 flex-1 flex-col overflow-hidden">{children}</main>
+            <main id="main" tabIndex={-1} className="flex min-w-0 flex-1 flex-col overflow-hidden outline-none">{children}</main>
           </div>
         </Providers>
       </body>
