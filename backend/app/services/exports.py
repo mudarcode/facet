@@ -7,6 +7,7 @@ import hmac
 import re
 import time
 import uuid
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import select
@@ -19,6 +20,7 @@ from app.models import Export
 from app.services import activity, jobs
 from app.services import charts as chart_svc
 from app.services import datasets as ds_svc
+from app.storage import get_storage
 
 
 def _slug(s: str) -> str:
@@ -81,3 +83,19 @@ def verify(export_id: uuid.UUID, expires: int, sig: str) -> None:
         raise Unauthorized("Download link expired.")
     if not hmac.compare_digest(_sig(str(export_id), expires), sig):
         raise Unauthorized("Invalid download link.")
+
+
+def sweep_expired(db: Session, now: datetime | None = None) -> int:
+    """Delete export files past the retention window; the row stays as history."""
+    cutoff = (now or datetime.now(UTC)) - timedelta(seconds=get_settings().export_retention_s)
+    stale = db.scalars(
+        select(Export).where(Export.created_at < cutoff, Export.storage_key.is_not(None))
+    ).all()
+    storage = get_storage()
+    for e in stale:
+        storage.delete(e.storage_key)  # type: ignore[arg-type]
+        e.storage_key = None
+        if e.status == "succeeded":
+            e.status = "expired"
+    db.commit()
+    return len(stale)

@@ -307,7 +307,7 @@ export type ExportSource =
 export interface ExportRecord {
   id: string;
   job_id: string | null;
-  status: "queued" | "running" | "succeeded" | "failed";
+  status: "queued" | "running" | "succeeded" | "failed" | "expired";
   format: "csv" | "parquet";
   filename: string;
   row_count: number | null;

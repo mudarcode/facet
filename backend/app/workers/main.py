@@ -18,7 +18,7 @@ from typing import Any
 from app.core.config import get_settings
 from app.core.db import session_scope
 from app.models import Job
-from app.services import datasets, jobs
+from app.services import datasets, exports, jobs
 from app.workers.handlers import HANDLERS, PermanentJobError, on_final_failure
 
 log = logging.getLogger("facet.worker")
@@ -107,7 +107,17 @@ class Worker:
             if swept:
                 log.info("finished %d interrupted dataset deletions", swept)
         log.info("worker %s started", self.worker_id)
+        next_sweep = 0.0
         while not self._stop.is_set():
+            if time.monotonic() >= next_sweep:
+                next_sweep = time.monotonic() + settings.export_sweep_interval_s
+                try:
+                    with session_scope() as db:
+                        removed = exports.sweep_expired(db)
+                    if removed:
+                        log.info("removed %d expired export files", removed)
+                except Exception:
+                    log.exception("export sweep failed")
             try:
                 worked = self.run_once()
             except Exception:

@@ -1,0 +1,65 @@
+# Facet: docker compose up --build, then open http://localhost:3000
+name: facet
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: facet
+      POSTGRES_PASSWORD: facet
+      POSTGRES_DB: facet
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U facet -d facet"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  api:
+    build: ./backend
+    environment: &backend-env
+      FACET_DATABASE_URL: postgresql+psycopg://facet:facet@postgres:5432/facet
+      FACET_DATA_DIR: /data
+      FACET_CORS_ORIGINS: '["http://localhost:3000"]'
+      # Change both for anything beyond local use.
+      FACET_DEV_TOKEN: ${FACET_DEV_TOKEN:-facet-dev-token}
+      FACET_SECRET_KEY: ${FACET_SECRET_KEY:-change-me-in-production}
+    volumes:
+      - facetdata:/data
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+
+  worker:
+    build: ./backend
+    command: ["python", "-m", "app.workers.main"]
+    environment: *backend-env
+    volumes:
+      - facetdata:/data
+    depends_on:
+      api:
+        condition: service_healthy  # api applies migrations first
+
+  web:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+        NEXT_PUBLIC_FACET_TOKEN: ${FACET_DEV_TOKEN:-facet-dev-token}
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  facetdata:

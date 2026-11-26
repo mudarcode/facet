@@ -1,0 +1,114 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: facet
+          POSTGRES_PASSWORD: facet
+          POSTGRES_DB: facet_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U facet" --health-interval 2s --health-timeout 3s --health-retries 30
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      FACET_TEST_DATABASE_URL: postgresql+psycopg://facet:facet@localhost:5432/facet_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync --frozen --group dev
+      - name: Lint
+        run: uv run ruff check . ../scripts && uv run ruff format --check app tests ../scripts
+      - name: Type check
+        run: uv run mypy app
+      - name: Tests
+        run: uv run pytest -q
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: facet
+          POSTGRES_PASSWORD: facet
+          POSTGRES_DB: facet
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U facet" --health-interval 2s --health-timeout 3s --health-retries 30
+    env:
+      FACET_DATABASE_URL: postgresql+psycopg://facet:facet@localhost:5432/facet
+      FACET_DATA_DIR: ${{ github.workspace }}/e2e-data
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Start API and worker
+        working-directory: backend
+        run: |
+          uv sync --frozen
+          uv run alembic upgrade head
+          nohup uv run uvicorn app.main:app --port 8000 > ../api.log 2>&1 &
+          nohup uv run python -m app.workers.main > ../worker.log 2>&1 &
+          for i in $(seq 60); do curl -sf localhost:8000/api/v1/health && break; sleep 1; done
+      - name: Build and start web
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+          cp -r .next/static .next/standalone/.next/static
+          nohup node .next/standalone/server.js > ../web.log 2>&1 &
+          for i in $(seq 60); do curl -sf localhost:3000 > /dev/null && break; sleep 1; done
+      - name: Playwright
+        working-directory: frontend
+        run: |
+          npx playwright install --with-deps chromium
+          npm run e2e
+      - if: failure()
+        run: tail -n 200 api.log worker.log web.log
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report

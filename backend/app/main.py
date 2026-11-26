@@ -60,6 +60,12 @@ def create_app() -> FastAPI:
         response = await call_next(request)
         ms = (time.perf_counter() - t0) * 1000
         response.headers["Server-Timing"] = f"app;dur={ms:.1f}"
+        # The API serves JSON and file downloads only: no framing, sniffing or referrers.
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("Referrer-Policy", "no-referrer")
+        if request.url.path.endswith("/download"):
+            response.headers["Cache-Control"] = "private, no-store"
         log.info("%s %s %s %.1fms", request.method, request.url.path, response.status_code, ms)
         return response
 

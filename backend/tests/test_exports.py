@@ -151,3 +151,34 @@ def test_export_row_cap(client, sales, monkeypatch):
     rows = list(csv.reader(io.StringIO(_download(client, e).text)))
     assert len(rows) == 101
     assert e["row_count"] == 100
+
+
+def test_expired_exports_lose_their_file_but_keep_history(client, sales):
+    from datetime import UTC, datetime, timedelta
+
+    from app.core.db import get_sessionmaker
+    from app.services import exports as svc
+    from app.storage import get_storage
+
+    e = _export(client, {"kind": "dataset", "dataset_id": sales["id"]})
+    url = e["download_url"]
+    with get_sessionmaker()() as db:
+        from app.models import Export
+
+        key = db.get(Export, e["id"]).storage_key
+        assert get_storage().exists(key)
+        assert svc.sweep_expired(db) == 0  # inside the retention window
+        later = datetime.now(UTC) + timedelta(seconds=get_settings().export_retention_s + 1)
+        assert svc.sweep_expired(db, now=later) == 1
+        assert not get_storage().exists(key)
+    after = client.get(f"/api/v1/exports/{e['id']}", headers=DEV).json()
+    assert after["status"] == "expired"
+    assert after["download_url"] is None
+    assert client.get(url).status_code == 404
+
+
+def test_download_is_not_cached_and_has_safety_headers(client, sales):
+    r = _download(client, _export(client, {"kind": "dataset", "dataset_id": sales["id"]}))
+    assert r.headers["cache-control"] == "private, no-store"
+    assert r.headers["x-content-type-options"] == "nosniff"
+    assert r.headers["x-frame-options"] == "DENY"

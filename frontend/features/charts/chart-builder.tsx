@@ -70,7 +70,7 @@ function parseSource(k: string): ChartSource {
 }
 
 /** Adapt a spec to a new chart type, keeping whatever still makes sense. */
-function retype(spec: ChartSpec, type: ChartType, cols: ColumnSchema[]): ChartSpec {
+export function retype(spec: ChartSpec, type: ChartType, cols: ColumnSchema[]): ChartSpec {
   const kindOf = (n?: string | null) => typeKind(cols.find((c) => c.name === n)?.type ?? "");
   // Prefer kinds in the listed order and skip identifier-looking columns when there is a choice.
   const idLike = (n: string) => /(^id$|_id$|^id_)/i.test(n);
@@ -101,7 +101,7 @@ function retype(spec: ChartSpec, type: ChartType, cols: ColumnSchema[]): ChartSp
   return { ...spec, type, x, y, grain, series };
 }
 
-function specReady(s: ChartSpec): string | null {
+export function specReady(s: ChartSpec): string | null {
   if (s.type === "stat") return s.y.length ? null : "Add a measure to show a number.";
   if (!s.x) return s.type === "histogram" ? "Choose a numeric field to bin." : "Choose a field for the x-axis.";
   if (s.type === "scatter" && !s.y[0]?.field) return "Choose a numeric field for the y-axis.";
