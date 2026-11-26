@@ -96,7 +96,7 @@ function fmtValue(v: unknown): string {
   return String(v);
 }
 
-function shape(data: ChartData): Shaped {
+export function shape(data: ChartData): Shaped {
   const { meta, rows } = data;
   if (meta.series) {
     // rows: [x, series, y] -> one object per x with a key per series.
