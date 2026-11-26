@@ -3,8 +3,13 @@
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Defaults that appear in this repository; never acceptable outside local development.
+_DEV_SECRETS = frozenset(
+    {"facet-dev-token", "facet-dev-secret-change-me", "change-me-in-production"}
+)
 
 
 class Settings(BaseSettings):
@@ -47,6 +52,25 @@ class Settings(BaseSettings):
     export_link_ttl_s: int = 600
     # Signs short-lived download links. Override in any shared deployment.
     secret_key: str = "facet-dev-secret-change-me"  # noqa: S105 - local development only
+    # Export files are deleted this long after creation; links expire much sooner.
+    export_retention_s: int = 24 * 3600
+    export_sweep_interval_s: float = 300.0
+
+    @model_validator(mode="after")
+    def _no_dev_secrets_outside_development(self) -> "Settings":
+        """Refuse to boot a non-development deployment with the published defaults."""
+        if self.env == "development":
+            return self
+        problems = []
+        if self.secret_key in _DEV_SECRETS:
+            problems.append("FACET_SECRET_KEY is a published default")
+        if self.seed_dev_user and self.dev_token in _DEV_SECRETS:
+            problems.append(
+                "FACET_DEV_TOKEN is a published default (or set FACET_SEED_DEV_USER=false)"
+            )
+        if problems:
+            raise ValueError(f"Unsafe settings for FACET_ENV={self.env!r}: " + "; ".join(problems))
+        return self
 
     @property
     def objects_dir(self) -> Path:

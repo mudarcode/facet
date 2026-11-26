@@ -12,7 +12,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
-from app.analytics.engine import quote_ident
+from app.analytics.engine import quote_ident, quote_literal
 from app.analytics.profile import kind_of
 from app.analytics.transforms import Condition, _condition
 from app.core.errors import InvalidInput
@@ -130,6 +130,15 @@ def validate_spec(spec: ChartSpec, schema: list[dict[str, str]]) -> None:
         raise InvalidInput("A summary card needs at least one measure.")
 
 
+NULL_SERIES = "(null)"
+
+
+def _series_expr(field: str) -> str:
+    """Series key as text. NULL gets its own visible label: it is a real group, and
+    ``NULL IN (...)`` would otherwise silently fold it into "Other"."""
+    return f"coalesce({quote_ident(field)}::VARCHAR, {quote_literal(NULL_SERIES)})"
+
+
 def _where(spec: ChartSpec, extra: list[Condition]) -> str:
     conds = [*spec.filters, *extra]
     if not conds:
@@ -180,16 +189,27 @@ def compile_chart(
     if spec.type == "histogram":
         q = quote_ident(spec.x or "")
         bins = o.bins
+        # Round bin widths (1, 2, 2.5 or 5 x 10^n) starting on a multiple of the width,
+        # so edges read 0, 20, 40 instead of 26.1, 66.3. Yields at most bins + 1 bins.
         sql = (
-            f"WITH _c_b AS (SELECT min({q})::DOUBLE AS lo, max({q})::DOUBLE AS hi "
+            f"WITH _c_r AS (SELECT min({q})::DOUBLE AS lo, max({q})::DOUBLE AS hi "
             f"FROM {src}{where}), "
+            f"_c_m AS (SELECT lo, hi, CASE WHEN hi > lo THEN (hi - lo) / {bins} END AS raw, "
+            f"CASE WHEN hi > lo THEN pow(10, floor(log10((hi - lo) / {bins}))) END AS mag "
+            f"FROM _c_r), "
+            f"_c_s AS (SELECT lo, hi, coalesce(CASE WHEN raw / mag <= 1 THEN 1 "
+            f"WHEN raw / mag <= 2 THEN 2 WHEN raw / mag <= 2.5 THEN 2.5 "
+            f"WHEN raw / mag <= 5 THEN 5 ELSE 10 END * mag, 1) AS step FROM _c_m), "
+            f"_c_b AS (SELECT step, floor(lo / step) * step AS start, "
+            f"floor((hi - floor(lo / step) * step) / step)::BIGINT + 1 AS n FROM _c_s), "
             f"_c_v AS (SELECT {q}::DOUBLE AS v FROM {src}{where}) "
-            f"SELECT lo + (hi - lo) / {bins} * k AS bin_start, "
-            f"lo + (hi - lo) / {bins} * (k + 1) AS bin_end, count(v.v) AS count "
-            f"FROM _c_b CROSS JOIN range({bins}) r(k) "
-            f"LEFT JOIN _c_v AS v ON v.v IS NOT NULL AND (CASE WHEN hi = lo THEN 0 ELSE "
-            f"least(floor((v.v - lo) / ((hi - lo) / {bins}))::BIGINT, {bins - 1}) END) = k "
-            f"GROUP BY k, lo, hi ORDER BY k"
+            f"SELECT start + step * k AS bin_start, start + step * (k + 1) AS bin_end, "
+            f"count(v.v) AS count "
+            f"FROM _c_b CROSS JOIN range({bins + 1}) r(k) "
+            f"LEFT JOIN _c_v AS v ON v.v IS NOT NULL "
+            f"AND least(floor((v.v - start) / step)::BIGINT, n - 1) = k "
+            f"WHERE k < n OR (n IS NULL AND k = 0) "
+            f"GROUP BY k, start, step ORDER BY k"
         )
         meta.update({"x": "bin_start", "measures": ["count"]})
         return sql, meta
@@ -199,7 +219,7 @@ def compile_chart(
         cols = [f"{quote_ident(spec.x or '')} AS x", f"{quote_ident(m.field or '')} AS y"]
         series_note = None
         if spec.series:
-            cols.append(f"{quote_ident(spec.series)}::VARCHAR AS series")
+            cols.append(f"{_series_expr(spec.series)} AS series")
             meta["series"] = "series"
             series_note = MAX_SCATTER_SERIES
         not_null = (
@@ -226,9 +246,9 @@ def compile_chart(
     if spec.series:
         m = spec.y[0]
         key = measure_key(m, 0)
-        s = quote_ident(spec.series)
         sql = (
-            f"WITH _c_g AS (SELECT {x} AS x, {s}::VARCHAR AS series, {_measure_sql(m)} AS y "
+            f"WITH _c_g AS (SELECT {x} AS x, {_series_expr(spec.series)} AS series, "
+            f"{_measure_sql(m)} AS y "
             f"FROM {src}{where} GROUP BY 1, 2), "
             f"_c_top AS (SELECT series FROM _c_g GROUP BY series "
             f"ORDER BY sum(y) DESC NULLS LAST, series "

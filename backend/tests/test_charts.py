@@ -1,6 +1,7 @@
 """Chart specs: compile correctness (checked against Python), field validation, sources."""
 
 import csv
+import itertools
 from collections import Counter, defaultdict
 from datetime import date
 
@@ -154,13 +155,30 @@ def test_series_split_and_fold(client):
     assert body["meta"]["series"] == "series"
 
 
+def test_null_series_is_its_own_group_not_other(client):
+    # Two categories plus missing values: nothing to fold, so no "Other" may appear.
+    csv = "cat,day,v\na,2024-01-01,1\nb,2024-01-01,2\n,2024-01-01,4\n,2024-01-02,8\n"
+    ds = upload_ready(client, csv.encode(), "nulls.csv")
+    for kind in ("bar", "scatter"):
+        spec = {"type": kind, "x": "day" if kind == "bar" else "v", "series": "cat",
+                "y": [{"field": "v", "agg": "sum"}]}  # fmt: skip
+        rows = _data(client, ds, spec).json()["rows"]
+        series = {r[1] if kind == "bar" else r[2] for r in rows}
+        assert series == {"a", "b", "(null)"}, (kind, rows)
+
+
 def test_histogram_bins_cover_all_rows(client, sales):
     body = _data(client, sales, {"type": "histogram", "x": "price", "options": {"bins": 10}}).json()
-    assert len(body["rows"]) == 10
-    assert sum(r[2] for r in body["rows"]) == len(_rows())
+    rows = body["rows"]
+    assert 1 <= len(rows) <= 11
+    assert sum(r[2] for r in rows) == len(_rows())
     prices = [float(r["price"]) for r in _rows()]
-    assert body["rows"][0][0] == pytest.approx(min(prices))
-    assert body["rows"][-1][1] == pytest.approx(max(prices))
+    width = rows[0][1] - rows[0][0]
+    # Round width, bins aligned on multiples of it, contiguous, covering min..max.
+    assert any(width == pytest.approx(f * 10**e) for f in (1, 2, 2.5, 5) for e in range(-3, 6))
+    assert rows[0][0] % width == pytest.approx(0) or rows[0][0] % width == pytest.approx(width)
+    assert all(a[1] == pytest.approx(b[0]) for a, b in itertools.pairwise(rows))
+    assert rows[0][0] <= min(prices) and max(prices) < rows[-1][1]
 
 
 def test_scatter_is_sampled_and_capped(client, sales):
