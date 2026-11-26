@@ -26,17 +26,23 @@ SAMPLE = ROOT / "samples" / "demo_orders.csv"
 
 class Api:
     def __init__(self, base: str, token: str) -> None:
+        if not base.startswith(("http://", "https://")):
+            sys.exit("--api must be an http(s) URL")
         self.base = base.rstrip("/") + "/api/v1"
         self.headers = {"Authorization": f"Bearer {token}"}
 
-    def call(self, method: str, path: str, body: object = None, *, raw: bytes | None = None) -> dict:
+    def call(
+        self, method: str, path: str, body: object = None, *, raw: bytes | None = None
+    ) -> dict:
         data, headers = raw, dict(self.headers)
         if body is not None:
             data = json.dumps(body).encode()
             headers["Content-Type"] = "application/json"
         elif raw is not None:
             headers["Content-Type"] = "application/octet-stream"
-        req = urllib.request.Request(self.base + path, data=data, method=method, headers=headers)
+        req = urllib.request.Request(  # noqa: S310 - scheme checked in __init__
+            self.base + path, data=data, method=method, headers=headers
+        )
         try:
             with urllib.request.urlopen(req, timeout=60) as r:  # noqa: S310 - fixed scheme from CLI
                 return json.loads(r.read() or b"{}")
@@ -56,7 +62,9 @@ def wait_ready(api: Api, dataset_id: str) -> dict:
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     ap.add_argument("--api", default="http://localhost:8000")
     ap.add_argument("--token", default="facet-dev-token")
     args = ap.parse_args()
@@ -74,16 +82,31 @@ def main() -> None:
     print(f"dataset ready: {t} ({ds['id']})")
 
     revenue_sql = (
-        f"SELECT region,\n       count(*) AS orders,\n       round(sum(qty * unit_price), 2) AS revenue\n"
+        "SELECT region,\n       count(*) AS orders,\n"
+        "       round(sum(qty * unit_price), 2) AS revenue\n"
         f"FROM {t}\nGROUP BY region\nORDER BY revenue DESC"
     )
-    by_region = api.call("POST", "/queries", {"name": "Revenue by region", "sql": revenue_sql,
-                                  "description": "Order count and revenue per region."})
-    returning = api.call("POST", "/queries", {
-        "name": "Returning vs new customers by month",
-        "sql": (f"SELECT date_trunc('month', ordered_at) AS month, is_returning, count(*) AS orders\n"
-                f"FROM {t}\nGROUP BY ALL\nORDER BY month"),
-    })
+    by_region = api.call(
+        "POST",
+        "/queries",
+        {
+            "name": "Revenue by region",
+            "sql": revenue_sql,
+            "description": "Order count and revenue per region.",
+        },
+    )
+    returning = api.call(
+        "POST",
+        "/queries",
+        {
+            "name": "Returning vs new customers by month",
+            "sql": (
+                "SELECT date_trunc('month', ordered_at) AS month, is_returning,\n"
+                "       count(*) AS orders\n"
+                f"FROM {t}\nGROUP BY ALL\nORDER BY month"
+            ),
+        },
+    )
 
     def chart(name: str, spec: dict, **source: str) -> str:
         body = {"name": name, "spec": spec, **(source or {"dataset_id": ds["id"]})}
@@ -91,17 +114,49 @@ def main() -> None:
 
     charts = [
         chart("Orders", {"type": "stat", "y": [{"agg": "count", "label": "Orders"}]}),
-        chart("Average discount", {"type": "stat", "y": [{"field": "discount_pct", "agg": "avg", "label": "Avg discount %"}]}),
-        chart("Revenue by region", {"type": "bar", "x": "region",
-                                    "y": [{"field": "revenue", "agg": "sum", "label": "Revenue"}],
-                                    "options": {"sort": "y_desc"}}, saved_query_id=by_region["id"]),
-        chart("Monthly orders by shipping", {"type": "line", "x": "ordered_at", "grain": "month",
-                                             "y": [{"agg": "count", "label": "Orders"}], "series": "shipping"}),
+        chart(
+            "Average discount",
+            {
+                "type": "stat",
+                "y": [{"field": "discount_pct", "agg": "avg", "label": "Avg discount %"}],
+            },
+        ),
+        chart(
+            "Revenue by region",
+            {
+                "type": "bar",
+                "x": "region",
+                "y": [{"field": "revenue", "agg": "sum", "label": "Revenue"}],
+                "options": {"sort": "y_desc"},
+            },
+            saved_query_id=by_region["id"],
+        ),
+        chart(
+            "Monthly orders by shipping",
+            {
+                "type": "line",
+                "x": "ordered_at",
+                "grain": "month",
+                "y": [{"agg": "count", "label": "Orders"}],
+                "series": "shipping",
+            },
+        ),
         chart("Unit price distribution", {"type": "histogram", "x": "unit_price"}),
-        chart("Returning customers", {"type": "area", "x": "month", "y": [{"field": "orders", "agg": "sum", "label": "Orders"}],
-                                      "series": "is_returning", "options": {"stacked": True}},
-              saved_query_id=returning["id"]),
-        chart("Quantity vs unit price", {"type": "scatter", "x": "unit_price", "y": [{"field": "qty", "agg": "sum"}]}),
+        chart(
+            "Returning customers",
+            {
+                "type": "area",
+                "x": "month",
+                "y": [{"field": "orders", "agg": "sum", "label": "Orders"}],
+                "series": "is_returning",
+                "options": {"stacked": True},
+            },
+            saved_query_id=returning["id"],
+        ),
+        chart(
+            "Quantity vs unit price",
+            {"type": "scatter", "x": "unit_price", "y": [{"field": "qty", "agg": "sum"}]},
+        ),
     ]
     layout = [
         {"i": "a", "chart_id": charts[0], "x": 0, "y": 0, "w": 3, "h": 3},
@@ -111,11 +166,15 @@ def main() -> None:
         {"i": "e", "chart_id": charts[4], "x": 6, "y": 7, "w": 6, "h": 7},
         {"i": "f", "chart_id": charts[5], "x": 0, "y": 11, "w": 6, "h": 7},
     ]
-    dash = api.call("POST", "/dashboards", {
-        "name": "Orders overview",
-        "description": "Volume, mix and pricing for the demo orders dataset.",
-        "layout": layout,
-    })
+    dash = api.call(
+        "POST",
+        "/dashboards",
+        {
+            "name": "Orders overview",
+            "description": "Volume, mix and pricing for the demo orders dataset.",
+            "layout": layout,
+        },
+    )
     print(f"dashboard: {args.api.replace(':8000', ':3000')}/dashboards/{dash['id']}")
 
 
