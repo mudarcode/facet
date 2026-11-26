@@ -456,7 +456,7 @@ export function ChartBuilder({ chart, initialSource }: { chart?: Chart; initialS
           ) : null}
         </aside>
 
-        <main className="flex min-h-[420px] min-w-0 flex-1 flex-col p-4">
+        <section aria-label="Chart preview" className="flex min-h-[420px] min-w-0 flex-1 flex-col p-4">
           {!srcKey ? (
             <Card className="flex flex-1 items-center justify-center">
               <EmptyState
@@ -504,7 +504,7 @@ export function ChartBuilder({ chart, initialSource }: { chart?: Chart; initialS
                       <ChartTable data={preview.data} />
                     </TabsContent>
                     <TabsContent value="sql" className="min-h-0 flex-1">
-                      <pre className="scroll-thin h-full overflow-auto rounded-md bg-surface-2 p-3 font-mono text-xs leading-relaxed whitespace-pre-wrap">{preview.data.sql}</pre>
+                      <pre tabIndex={0} aria-label="Generated SQL" className="scroll-thin h-full overflow-auto rounded-md bg-surface-2 p-3 font-mono text-xs leading-relaxed whitespace-pre-wrap">{preview.data.sql}</pre>
                     </TabsContent>
                   </>
                 ) : (
@@ -515,7 +515,7 @@ export function ChartBuilder({ chart, initialSource }: { chart?: Chart; initialS
               </Card>
             </Tabs>
           )}
-        </main>
+        </section>
       </div>
     </>
   );

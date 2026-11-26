@@ -38,7 +38,7 @@ export function ResultsPanel({
             <X />
           </Button>
         </div>
-        <pre className="scroll-thin flex-1 overflow-auto bg-surface p-4 font-mono text-[11.5px] leading-snug text-muted">{plan}</pre>
+        <pre tabIndex={0} aria-label="Query plan" className="scroll-thin flex-1 overflow-auto bg-surface p-4 font-mono text-[11.5px] leading-snug text-muted">{plan}</pre>
       </div>
     );
   }

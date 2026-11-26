@@ -138,3 +138,15 @@ def test_deleting_source_prunes_layout(client, sales):
     assert client.delete(f"/api/v1/datasets/{sales['id']}", headers=DEV).status_code == 204
     got = client.get(f"/api/v1/dashboards/{d['id']}", headers=DEV).json()
     assert got["layout"] == []
+
+
+def test_activity_feed_and_summary(client, sales):
+    _chart(client, {"dataset_id": sales["id"]}, "Feed chart")
+    client.post("/api/v1/dashboards", json={"name": "Feed dash"}, headers=DEV)
+    feed = client.get("/api/v1/activity", headers=DEV).json()
+    kinds = [e["kind"] for e in feed]
+    assert kinds[:2] == ["dashboard.created", "chart.saved"]
+    assert "dataset.ready" in kinds or any(k.startswith("dataset.") for k in kinds)
+    assert client.get("/api/v1/activity", headers=OTHER).json() == []
+    s = client.get("/api/v1/workspace/summary", headers=DEV).json()
+    assert s == {"datasets": 1, "saved_queries": 0, "charts": 1, "dashboards": 1}

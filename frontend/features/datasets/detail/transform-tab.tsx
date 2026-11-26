@@ -1,6 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowDown, ArrowUp, Code2, Play, Plus, Save, Trash2, Wand2, X } from "lucide-react";
 import { toast } from "sonner";
@@ -72,6 +73,7 @@ function columnsAfter(steps: TransformStep[], base: string[], upto: number): str
 
 export function TransformTab({ dataset }: { dataset: Dataset }) {
   const qc = useQueryClient();
+  const router = useRouter();
   const base = useMemo(() => (dataset.current_version?.columns ?? []).map((c) => c.name), [dataset]);
   const [steps, setSteps] = useState<TransformStep[]>([]);
   const [applied, setApplied] = useState<TransformStep[]>([]);
@@ -131,7 +133,7 @@ export function TransformTab({ dataset }: { dataset: Dataset }) {
       qc.invalidateQueries({ queryKey: ["datasets"] });
       qc.invalidateQueries({ queryKey: ["transformations", dataset.id] });
       toast.success("Creating dataset from transformation…", {
-        action: { label: "Open", onClick: () => (window.location.href = `/datasets/${r.dataset_id}`) },
+        action: { label: "Open", onClick: () => router.push(`/datasets/${r.dataset_id}`) },
       });
     } catch (e) {
       toast.error(e instanceof ApiError ? e.message : "Could not apply");
@@ -257,7 +259,7 @@ export function TransformTab({ dataset }: { dataset: Dataset }) {
             <Code2 /> {showSql ? "Hide SQL" : "Show SQL"}
           </Button>
         </CardHeader>
-        {showSql && preview.data ? <pre className="scroll-thin max-h-56 overflow-auto border-b border-border bg-surface-2 p-3 font-mono text-[11.5px] text-muted">{preview.data.sql}</pre> : null}
+        {showSql && preview.data ? <pre tabIndex={0} aria-label="Generated SQL" className="scroll-thin max-h-56 overflow-auto border-b border-border bg-surface-2 p-3 font-mono text-[11.5px] text-muted">{preview.data.sql}</pre> : null}
         {err ? <ErrorBanner className="m-3" title="Invalid pipeline" message={err.message} /> : null}
         {preview.isLoading ? (
           <Skeleton className="m-3 h-64" />

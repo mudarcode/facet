@@ -46,6 +46,8 @@ export function DataTable({
     [columns],
   );
 
+  // TanStack Table returns fresh functions each render, so the compiler skips this component (expected).
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({ data: rows, columns: defs, getCoreRowModel: getCoreRowModel(), columnResizeMode: "onChange" });
   const parentRef = useRef<HTMLDivElement>(null);
   const tableRows = table.getRowModel().rows;
@@ -61,7 +63,7 @@ export function DataTable({
   const padBottom = items.length ? virtualizer.getTotalSize() - items[items.length - 1]!.end : 0;
 
   return (
-    <div ref={parentRef} className={cn("scroll-thin relative overflow-auto", className)}>
+    <div ref={parentRef} tabIndex={0} role="region" aria-label={ariaLabel} className={cn("scroll-thin relative overflow-auto focus-visible:outline-2 focus-visible:outline-[var(--ring)]", className)}>
       <table role="grid" aria-label={ariaLabel} aria-rowcount={rows.length} className="tabular border-separate border-spacing-0 text-[12.5px]" style={{ width: totalWidth, minWidth: "100%" }}>
         <thead className="sticky top-0 z-10">
           {table.getHeaderGroups().map((hg) => (

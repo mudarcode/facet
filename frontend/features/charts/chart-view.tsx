@@ -28,7 +28,7 @@ import { formatCompact, formatNumber } from "@/lib/format";
 import type { ChartData, ChartSpec } from "@/lib/types";
 
 const TOKENS = ["--chart-1", "--chart-2", "--chart-3", "--chart-4", "--chart-5", "--chart-6", "--chart-7", "--chart-8", "--border", "--fg-subtle", "--fg-muted", "--surface", "--fg"] as const;
-const FALLBACK = "#257de0|#f47230|#00b894|#f2a600|#ee7fac|#008a17|#6a4ce2|#ec4647|#e3e6ec|#8a93a3|#5b6475|#ffffff|#121722";
+const FALLBACK = "#257de0|#f47230|#00b894|#f2a600|#ee7fac|#008a17|#6a4ce2|#ec4647|#e3e6ec|#646c7e|#5b6475|#ffffff|#121722";
 
 function subscribe(cb: () => void) {
   const obs = new MutationObserver(cb);
@@ -406,7 +406,7 @@ export function ChartView({ data, spec, height = "100%" }: { data: ChartData; sp
 /** Accessible table view of the same data (identity never relies on colour alone). */
 export function ChartTable({ data }: { data: ChartData }) {
   return (
-    <div className="scroll-thin h-full overflow-auto">
+    <div tabIndex={0} role="region" aria-label="Chart data" className="scroll-thin h-full overflow-auto">
       <table className="w-full text-xs">
         <thead className="sticky top-0 bg-surface">
           <tr className="border-b border-border text-left text-muted">

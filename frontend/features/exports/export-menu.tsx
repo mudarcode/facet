@@ -52,7 +52,7 @@ export function ExportMenu({ source, size = "md", label = "Export" }: { source: 
   return (
     <Menu>
       <MenuTrigger asChild>
-        <Button variant="outline" size={size} loading={busy} data-testid="export-menu">
+        <Button variant="outline" size={size} loading={busy} aria-label={label ? undefined : "Export data"} data-testid="export-menu">
           {busy ? null : <Download />} {label} <ChevronDown className="opacity-60" />
         </Button>
       </MenuTrigger>

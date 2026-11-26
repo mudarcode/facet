@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Play, ListTree } from "lucide-react";
 import { PageHeader } from "@/components/shell/page-header";
 import { Button } from "@/components/ui/button";
@@ -49,6 +49,18 @@ export function SqlWorkspace() {
   const [state, setState] = useState<RunState>({ status: "idle" });
   const [plan, setPlan] = useState<string | null>(null);
   const [savedQueryId, setSavedQueryId] = useState<string | null>(null);
+  // ?saved=<id> opens a saved query once the list has loaded (derived state, no effect).
+  const savedParam = params.get("saved");
+  const savedList = useQuery({ queryKey: ["saved-queries"], queryFn: () => api.savedQueries(), enabled: !!savedParam });
+  const [appliedSaved, setAppliedSaved] = useState<string | null>(null);
+  if (savedParam && appliedSaved !== savedParam && savedList.data) {
+    setAppliedSaved(savedParam);
+    const q = savedList.data.items.find((x) => x.id === savedParam);
+    if (q) {
+      setSql(q.sql);
+      setSavedQueryId(q.id);
+    }
+  }
   const [lastSql, setLastSql] = useState("");
   const [editorHeight, setEditorHeight] = useState(260);
 
